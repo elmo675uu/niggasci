@@ -6,35 +6,63 @@ const AudioPlayer = ({ config }) => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [showPlayOverlay, setShowPlayOverlay] = useState(false)
-  const [hasUserInteracted, setHasUserInteracted] = useState(false)
+  const [hasUserInteracted, setHasUserInteracted] = useState(() => {
+    try {
+      return localStorage.getItem('audioEnabled') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const audioUrl = config.audioUrl || ''
+  const audioAutoplay = config.audioAutoplay !== false
+  const audioLoop = config.audioLoop !== false
+  const audioVolume = typeof config.audioVolume === 'number' ? config.audioVolume : 0.5
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    // Set audio source if configured
-    if (config.audioUrl) {
-      audio.src = config.audioUrl
-      audio.loop = config.audioLoop !== false
-      audio.volume = config.audioVolume || 0.5
+    // Compute absolute URL for reliable comparison
+    const desiredSrc = audioUrl ? new URL(audioUrl, window.location.origin).href : ''
+
+    // Only set src if it actually changed to avoid restarts
+    if (desiredSrc && audio.src !== desiredSrc) {
+      audio.src = desiredSrc
     }
 
-    // Try autoplay on load
-    const tryAutoplay = async () => {
-      if (config.audioUrl && config.audioAutoplay !== false) {
+    // Always ensure loop/volume reflect config without restarting
+    audio.loop = audioLoop
+    audio.volume = audioVolume
+
+    const resumeWithSoundIfAllowed = async () => {
+      if (!desiredSrc) return
+      if (hasUserInteracted) {
         try {
-          audio.muted = true // Start muted for autoplay
-          await audio.play()
-          setIsPlaying(true)
-          setShowPlayOverlay(true) // Show overlay to enable sound
-        } catch (error) {
-          console.log('Autoplay blocked:', error)
-          setShowPlayOverlay(true)
+          audio.muted = false
+          setIsMuted(false)
+          setShowPlayOverlay(false)
+          // Try to play, but do not force errors to surface
+          await audio.play().catch(() => {})
+          setIsPlaying(!audio.paused)
+        } catch {
+          // ignore
         }
+        return
+      }
+
+      if (!audioAutoplay) return
+
+      try {
+        audio.muted = true
+        await audio.play()
+        setIsPlaying(true)
+        setShowPlayOverlay(true)
+      } catch {
+        setShowPlayOverlay(true)
       }
     }
 
-    // Audio event listeners
     const handlePlay = () => setIsPlaying(true)
     const handlePause = () => setIsPlaying(false)
     const handleEnded = () => setIsPlaying(false)
@@ -48,8 +76,7 @@ const AudioPlayer = ({ config }) => {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('error', handleError)
 
-    // Try autoplay after a short delay
-    setTimeout(tryAutoplay, 1000)
+    setTimeout(resumeWithSoundIfAllowed, 300)
 
     return () => {
       audio.removeEventListener('play', handlePlay)
@@ -57,7 +84,8 @@ const AudioPlayer = ({ config }) => {
       audio.removeEventListener('ended', handleEnded)
       audio.removeEventListener('error', handleError)
     }
-  }, [config])
+  // Depend only on values that matter, not the whole config object
+  }, [audioUrl, audioAutoplay, audioLoop, audioVolume, hasUserInteracted])
 
   const togglePlayPause = async () => {
     const audio = audioRef.current
@@ -81,10 +109,11 @@ const AudioPlayer = ({ config }) => {
     const newMuted = !isMuted
     audio.muted = newMuted
     setIsMuted(newMuted)
-    
-    if (newMuted === false && showPlayOverlay) {
-      setShowPlayOverlay(false)
-      setHasUserInteracted(true)
+
+    if (newMuted === false) {
+      try { localStorage.setItem('audioEnabled', 'true') } catch {}
+      if (showPlayOverlay) setShowPlayOverlay(false)
+      if (!hasUserInteracted) setHasUserInteracted(true)
     }
   }
 
@@ -97,7 +126,8 @@ const AudioPlayer = ({ config }) => {
       setIsMuted(false)
       setShowPlayOverlay(false)
       setHasUserInteracted(true)
-      
+      try { localStorage.setItem('audioEnabled', 'true') } catch {}
+
       if (!isPlaying) {
         await audio.play()
       }
@@ -106,22 +136,19 @@ const AudioPlayer = ({ config }) => {
     }
   }
 
-  // Don't render if no audio URL is configured
-  if (!config.audioUrl) {
+  if (!audioUrl) {
     return null
   }
 
   return (
     <>
-      {/* Hidden audio element */}
       <audio
         ref={audioRef}
         preload="auto"
         style={{ display: 'none' }}
       />
 
-      {/* Play Overlay */}
-      {showPlayOverlay && (
+      {showPlayOverlay && !hasUserInteracted && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-center justify-center">
           <div className="card max-w-md text-center">
             <h3 className="text-xl font-heading font-bold text-primary-500 mb-4">
@@ -141,10 +168,8 @@ const AudioPlayer = ({ config }) => {
         </div>
       )}
 
-      {/* Floating Audio Controls */}
       <div className="fixed bottom-6 right-6 z-30">
         <div className="flex items-center space-x-2 bg-dark-900/95 backdrop-blur-md border border-dark-700 rounded-lg p-3 shadow-xl">
-          {/* Play/Pause Button */}
           <button
             onClick={togglePlayPause}
             className="p-2 rounded-lg bg-dark-800 hover:bg-dark-700 text-gray-400 hover:text-primary-400 transition-all duration-300"
@@ -153,7 +178,6 @@ const AudioPlayer = ({ config }) => {
             {isPlaying ? <Pause size={20} /> : <Play size={20} />}
           </button>
 
-          {/* Mute/Unmute Button */}
           <button
             onClick={toggleMute}
             className="p-2 rounded-lg bg-dark-800 hover:bg-dark-700 text-gray-400 hover:text-primary-400 transition-all duration-300"

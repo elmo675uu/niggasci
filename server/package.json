@@ -1,36 +1,23 @@
 {
-  {
-  "name": "imageboard-backend",
-  "version": "1.0.0",
-  "main": "index.js",
-  "engines": { "node": ">=16" },
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "express": "^4.19.2"
-    /* plus any others you use: cors, helmet, sanitize-html, etc. */
-  }
-}
-
   "name": "niggachain-imageboard-server",
   "version": "1.0.0",
   "description": "Express server for NIGGA SCIENCE imageboard",
   "main": "index.js",
   "type": "module",
+  "engines": { "node": ">=16" },
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5",
-    "sanitize-html": "^2.11.0",
-    "uuid": "^9.0.1",
     "dotenv": "^16.3.1",
-    "bcryptjs": "^2.4.3"
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "sanitize-html": "^2.11.0",
+    "uuid": "^9.0.1"
   }
 }
 
