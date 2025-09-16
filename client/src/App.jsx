@@ -4,13 +4,14 @@ import Board from './components/Board'
 import AdminPanel from './components/AdminPanel'
 import AudioPlayer from './components/AudioPlayer'
 import SnowflakeAnimation from './components/SnowflakeAnimation'
+import LoadingScreen from './components/LoadingScreen'
 
 function App() {
   const [posts, setPosts] = useState({ pinned: [], user: [] })
   const [config, setConfig] = useState({})
   const [showAdmin, setShowAdmin] = useState(false)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Load initial data immediately
   useEffect(() => {
@@ -35,7 +36,10 @@ function App() {
         audioVolume: 0.3
       })
       
-      // No loading state needed with aggressive optimization
+      // Set loading to false after data loads
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 1000) // Show loading screen for at least 1 second
       
       // No fallback needed - API is now fast
       
@@ -147,6 +151,11 @@ function App() {
   }
 
 
+  // Show loading screen while loading
+  if (isLoading) {
+    return <LoadingScreen />
+  }
+
   return (
     <div className="min-h-screen">
       <Header 
@@ -162,7 +171,6 @@ function App() {
           onRefresh={loadData}
           isAdminAuthenticated={isAdminAuthenticated}
         />
-        {/* No loading indicator needed with aggressive optimization */}
       </main>
       
       <AudioPlayer config={config} />
