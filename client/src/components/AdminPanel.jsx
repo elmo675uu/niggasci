@@ -146,6 +146,22 @@ const AdminPanel = ({ config, onClose, onUpdateConfig, onAdminLogin }) => {
                   className="input-field w-full h-20 resize-none"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Token Contract Address (CA)
+                </label>
+                <input
+                  type="text"
+                  value={configData.tokenCA || ''}
+                  onChange={(e) => handleConfigChange('tokenCA', e.target.value)}
+                  className="input-field w-full"
+                  placeholder="Enter token contract address (e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  The token contract address will be displayed on the main page
+                </p>
+              </div>
             </div>
 
             {/* Social Links */}

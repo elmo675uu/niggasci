@@ -130,6 +130,7 @@ async function initializeFiles() {
        const initialConfig = {
          title: "NIGGA SCIENCE",
          description: "The ultimate imageboard for nigga science discussions",
+         tokenCA: "",
          socialLinks: {
            twitter: "https://twitter.com/niggascience",
            dexscreener: "https://dexscreener.com/solana/niggascience",

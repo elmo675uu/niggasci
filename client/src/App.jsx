@@ -31,6 +31,7 @@ function App() {
       setConfig({
         title: "NIGGA SCIENCE",
         description: "The ultimate imageboard for nigga science discussions",
+        tokenCA: "",
         socialLinks: {
           twitter: "https://twitter.com/niggascience",
           dexscreener: "https://dexscreener.com/solana/niggascience",
@@ -124,6 +125,7 @@ function App() {
           <BoardList 
             isAdminAuthenticated={isAdminAuthenticated}
             onBoardSelect={handleBoardSelect}
+            config={config}
           />
         )}
         

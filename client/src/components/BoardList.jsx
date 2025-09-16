@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, MessageSquare, Users, Clock } from 'lucide-react'
 
-const BoardList = ({ isAdminAuthenticated, onBoardSelect }) => {
+const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [boards, setBoards] = useState([])
   const [showCreateBoard, setShowCreateBoard] = useState(false)
   const [newBoard, setNewBoard] = useState({ name: '', description: '' })
@@ -59,9 +59,43 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect }) => {
           <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 mb-4">
             NIGGA SCIENCE
           </h1>
-          <p className="text-xl text-gray-300 mb-8">
+          <p className="text-xl text-gray-300 mb-4">
             The ultimate imageboard for nigga science discussions
           </p>
+          
+          {/* Token Contract Address */}
+          {config?.tokenCA && (
+            <div className="mb-8">
+              <div className="inline-block bg-dark-800/50 border border-primary-500/30 rounded-lg px-6 py-3">
+                <p className="text-sm text-gray-400 mb-1">Token Contract Address</p>
+                <p className="text-primary-400 font-mono text-sm break-all">
+                  {config.tokenCA}
+                </p>
+                <div className="flex justify-center space-x-4 mt-3">
+                  {config.socialLinks?.dexscreener && (
+                    <a
+                      href={`${config.socialLinks.dexscreener}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary-400 hover:text-primary-300 underline"
+                    >
+                      View on Dexscreener
+                    </a>
+                  )}
+                  {config.socialLinks?.pumpfun && (
+                    <a
+                      href={`${config.socialLinks.pumpfun}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary-400 hover:text-primary-300 underline"
+                    >
+                      View on Pump Fun
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           
           {isAdminAuthenticated && (
             <button
