@@ -2,36 +2,51 @@ import React from 'react'
 
 const LoadingScreen = () => {
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 flex items-center justify-center z-50">
-      <div className="text-center">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      {/* Background GIF */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/bg.gif)',
+          filter: 'brightness(0.3)'
+        }}
+      />
+      
+      {/* Matrix Green Text Overlay */}
+      <div className="relative z-10 text-center">
         {/* Main Logo/Title */}
         <div className="mb-8">
-          <h1 className="text-6xl md:text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 animate-pulse">
+          <h1 className="text-6xl md:text-8xl font-bold text-green-400 animate-pulse drop-shadow-lg" 
+              style={{ 
+                textShadow: '0 0 10px #10b981, 0 0 20px #10b981, 0 0 30px #10b981',
+                fontFamily: 'monospace'
+              }}>
             NIGGA
           </h1>
-          <h2 className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-300 via-primary-400 to-primary-500 mt-2">
+          <h2 className="text-3xl md:text-5xl font-bold text-green-300 mt-2 drop-shadow-lg"
+              style={{ 
+                textShadow: '0 0 10px #34d399, 0 0 20px #34d399',
+                fontFamily: 'monospace'
+              }}>
             SCIENCE
           </h2>
         </div>
 
         {/* Loading Animation */}
         <div className="flex justify-center items-center space-x-2 mb-8">
-          <div className="w-3 h-3 bg-primary-400 rounded-full animate-bounce"></div>
-          <div className="w-3 h-3 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-3 h-3 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce" 
+               style={{ boxShadow: '0 0 10px #10b981' }}></div>
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-bounce" 
+               style={{ animationDelay: '0.1s', boxShadow: '0 0 10px #10b981' }}></div>
+          <div className="w-3 h-3 bg-green-600 rounded-full animate-bounce" 
+               style={{ animationDelay: '0.2s', boxShadow: '0 0 10px #10b981' }}></div>
         </div>
 
         {/* Loading Text */}
-        <p className="text-xl text-gray-300 font-medium animate-pulse">
+        <p className="text-xl text-green-300 font-medium animate-pulse font-mono"
+           style={{ textShadow: '0 0 5px #34d399' }}>
           Loading the future of science...
         </p>
-
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary-500/10 rounded-full animate-ping"></div>
-          <div className="absolute top-3/4 right-1/4 w-24 h-24 bg-primary-400/10 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-primary-600/10 rounded-full animate-ping" style={{ animationDelay: '2s' }}></div>
-        </div>
       </div>
     </div>
   )
