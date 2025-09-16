@@ -26,7 +26,7 @@ const SnowflakeAnimation = () => {
         x: Math.random() * canvas.width,
         y: -50,
         size: Math.random() * 15 + 8, // 8-23px
-        speed: Math.random() * 0.06 + 0.02, // 0.02-0.08px per frame (very slow rain)
+        speed: Math.random() * 0.02 + 0.007, // 0.007-0.027px per frame (3x slower rain)
         opacity: Math.random() * 0.5 + 0.3 // 0.3-0.8 opacity for variety
       }
     }
@@ -80,7 +80,7 @@ const SnowflakeAnimation = () => {
       snowflakes.forEach(drawRaindrop)
       
       // Add new raindrops occasionally
-      if (Math.random() < 0.0006) { // 0.06% chance per frame (very gentle rain)
+      if (Math.random() < 0.0002) { // 0.02% chance per frame (3x slower spawn rate)
         setSnowflakes(prev => [...prev, createRaindrop()])
       }
       
