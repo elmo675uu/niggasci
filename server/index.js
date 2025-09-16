@@ -367,7 +367,7 @@ app.post('/api/posts/:id/:action', async (req, res) => {
   try {
     const { id, action } = req.params
     
-    if (!['pin', 'unpin'].includes(action)) {
+    if (!['pin', 'unpin', 'like', 'unlike'].includes(action)) {
       return res.status(400).json({ error: 'Invalid action' })
     }
     
@@ -400,7 +400,7 @@ app.post('/api/posts/:id/:action', async (req, res) => {
       return res.status(404).json({ error: 'Post not found' })
     }
     
-    // Move post between arrays
+    // Handle different actions
     if (action === 'pin' && sourceArray === posts.user) {
       posts.user.splice(posts.user.findIndex(p => p.id === id), 1)
       post.pinned = true
@@ -409,6 +409,22 @@ app.post('/api/posts/:id/:action', async (req, res) => {
       posts.pinned.splice(posts.pinned.findIndex(p => p.id === id), 1)
       post.pinned = false
       posts.user.push(post)
+    } else if (action === 'like') {
+      // Initialize likes array if it doesn't exist
+      if (!post.likes) {
+        post.likes = []
+      }
+      // Add like (simple implementation - could be enhanced with user tracking)
+      if (!post.likes.includes('user')) {
+        post.likes.push('user')
+      }
+    } else if (action === 'unlike') {
+      // Initialize likes array if it doesn't exist
+      if (!post.likes) {
+        post.likes = []
+      }
+      // Remove like
+      post.likes = post.likes.filter(like => like !== 'user')
     }
     
     // Save posts
