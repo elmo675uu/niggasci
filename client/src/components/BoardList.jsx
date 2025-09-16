@@ -595,13 +595,13 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
         </div>
 
         {/* Admin Info Posts Section */}
-        {isAdminAuthenticated && (
-          <div className="mt-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-primary-400 flex items-center space-x-2">
-                <Info size={24} />
-                <span>Admin Information Posts</span>
-              </h2>
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-primary-400 flex items-center space-x-2">
+              <Info size={24} />
+              <span>Information Posts</span>
+            </h2>
+            {isAdminAuthenticated && (
               <button
                 onClick={() => setShowCreateInfoPost(true)}
                 className="btn-primary flex items-center space-x-2"
@@ -609,7 +609,8 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                 <Plus size={16} />
                 <span>New Info Post</span>
               </button>
-            </div>
+            )}
+          </div>
 
             {/* Info Posts List */}
             {infoPosts.length > 0 ? (
@@ -618,13 +619,15 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                   <div key={post.id} className="card">
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="text-xl font-bold text-primary-400">{post.title}</h3>
-                      <button
-                        onClick={() => handleDeleteInfoPost(post.id)}
-                        className="p-1 rounded bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 transition-all duration-300"
-                        title="Delete info post"
-                      >
-                        <X size={16} />
-                      </button>
+                      {isAdminAuthenticated && (
+                        <button
+                          onClick={() => handleDeleteInfoPost(post.id)}
+                          className="p-1 rounded bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 transition-all duration-300"
+                          title="Delete info post"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
                     </div>
                     {post.imageUrl && (
                       <div className="mb-4">
@@ -650,11 +653,13 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Info size={48} className="mx-auto mb-4 text-gray-600" />
-                <p>No information posts yet. Create one to share important updates with users.</p>
+                <p>No information posts yet.</p>
+                {isAdminAuthenticated && (
+                  <p className="text-sm mt-2">Create one to share important updates with users.</p>
+                )}
               </div>
             )}
-          </div>
-        )}
+        </div>
 
         {/* Create Info Post Modal */}
         {showCreateInfoPost && (
