@@ -14,9 +14,19 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [showLoadingScreen, setShowLoadingScreen] = useState(true)
 
-  // Load initial data
+  // Load initial data immediately
   useEffect(() => {
+    // Start loading data immediately, don't wait for loading screen
     loadData()
+    
+    // Also set a maximum loading time to prevent infinite loading
+    const maxLoadingTime = setTimeout(() => {
+      console.log('Maximum loading time reached, forcing completion')
+      setIsLoading(false)
+      setShowLoadingScreen(false)
+    }, 2000) // 2 second maximum
+    
+    return () => clearTimeout(maxLoadingTime)
   }, [])
 
   const loadData = async () => {
@@ -35,7 +45,7 @@ function App() {
       
       // Use Promise.allSettled with timeout for faster loading
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000) // 3 second timeout
+        setTimeout(() => reject(new Error('Timeout')), 1000) // 1 second timeout
       )
       
       const [postsResult, configResult] = await Promise.allSettled([
@@ -121,7 +131,7 @@ function App() {
   }
 
   // Show loading screen while loading
-  if (isLoading || showLoadingScreen) {
+  if (showLoadingScreen) {
     return <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />
   }
 
@@ -134,12 +144,20 @@ function App() {
       />
       
       <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <Board 
-          posts={posts}
-          onAddPost={addPost}
-          onRefresh={loadData}
-          isAdminAuthenticated={isAdminAuthenticated}
-        />
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="text-primary-500 text-lg font-heading animate-pulse">
+              Loading posts...
+            </div>
+          </div>
+        ) : (
+          <Board 
+            posts={posts}
+            onAddPost={addPost}
+            onRefresh={loadData}
+            isAdminAuthenticated={isAdminAuthenticated}
+          />
+        )}
       </main>
       
       <AudioPlayer config={config} />

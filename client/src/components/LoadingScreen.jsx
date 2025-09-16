@@ -6,9 +6,7 @@ const LoadingScreen = ({ onComplete }) => {
 
   useEffect(() => {
     const loadingSteps = [
-      { progress: 30, text: 'Loading NIGGA SCIENCE...' },
-      { progress: 60, text: 'Connecting to server...' },
-      { progress: 90, text: 'Loading content...' },
+      { progress: 50, text: 'Loading NIGGA SCIENCE...' },
       { progress: 100, text: 'Ready!' }
     ]
 
@@ -23,9 +21,9 @@ const LoadingScreen = ({ onComplete }) => {
         clearInterval(interval)
         setTimeout(() => {
           onComplete()
-        }, 200) // Faster completion
+        }, 100) // Very fast completion
       }
-    }, 150) // Faster steps
+    }, 100) // Much faster steps
 
     return () => clearInterval(interval)
   }, [onComplete])
