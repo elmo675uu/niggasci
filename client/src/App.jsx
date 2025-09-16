@@ -19,19 +19,29 @@ function App() {
 
   const loadData = async () => {
     try {
+      console.log('Loading data...')
       const [postsRes, configRes] = await Promise.all([
         fetch('/api/posts'),
         fetch('/api/config')
       ])
       
+      console.log('Posts response:', postsRes.status, postsRes.statusText)
+      console.log('Config response:', configRes.status, configRes.statusText)
+      
       if (postsRes.ok) {
         const postsData = await postsRes.json()
+        console.log('Loaded posts data:', postsData)
         setPosts(postsData)
+      } else {
+        console.error('Failed to load posts:', postsRes.status, postsRes.statusText)
       }
       
       if (configRes.ok) {
         const configData = await configRes.json()
+        console.log('Loaded config data:', configData)
         setConfig(configData)
+      } else {
+        console.error('Failed to load config:', configRes.status, configRes.statusText)
       }
     } catch (error) {
       console.error('Failed to load data:', error)
