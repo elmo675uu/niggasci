@@ -63,65 +63,124 @@ const NewPostForm = ({ onAddPost }) => {
     }))
   }
 
-  const compressImage = (file, maxSizeKB = 1000, quality = 0.8) => {
+  const compressImage = (file, maxSizeKB = 1000) => {
     return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
+      // Use FileReader for simple base64 conversion without canvas
+      const reader = new FileReader()
       
-      img.onload = () => {
+      reader.onload = (event) => {
         try {
-          // Calculate new dimensions to fit within maxSizeKB
-          let { width, height } = img
-          const maxDimension = 1200 // Max width or height
+          const base64Data = event.target.result
+          const sizeKB = (base64Data.length * 0.75) / 1024 // Approximate base64 to KB conversion
           
-          // First, resize if too large
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = (height * maxDimension) / width
-              width = maxDimension
-            } else {
-              width = (width * maxDimension) / height
-              height = maxDimension
-            }
+          console.log(`Original file size: ${(file.size / 1024).toFixed(1)}KB, Base64 size: ${sizeKB.toFixed(1)}KB`)
+          
+          // If already under limit, use as is
+          if (sizeKB <= maxSizeKB) {
+            resolve({
+              dataUrl: base64Data,
+              sizeKB: sizeKB.toFixed(1),
+              quality: 1.0
+            })
+            return
           }
           
-          canvas.width = width
-          canvas.height = height
+          // If too large, try to reduce file size by creating a smaller version
+          // Create a new file with reduced quality using canvas (but with better error handling)
+          const img = new Image()
           
-          // Draw image
-          ctx.drawImage(img, 0, 0, width, height)
-          
-          // Try different quality levels until we get under maxSizeKB
-          const tryCompress = (currentQuality) => {
-            const dataUrl = canvas.toDataURL('image/jpeg', currentQuality)
-            const sizeKB = (dataUrl.length * 0.75) / 1024 // Approximate base64 to KB conversion
-            
-            console.log(`Quality: ${currentQuality}, Size: ${sizeKB.toFixed(1)}KB`)
-            
-            if (sizeKB <= maxSizeKB || currentQuality <= 0.1) {
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas')
+              const ctx = canvas.getContext('2d')
+              
+              if (!ctx) {
+                throw new Error('Canvas context not available')
+              }
+              
+              // Calculate new dimensions
+              let { width, height } = img
+              const maxDimension = 800 // Smaller max dimension
+              
+              if (width > maxDimension || height > maxDimension) {
+                if (width > height) {
+                  height = (height * maxDimension) / width
+                  width = maxDimension
+                } else {
+                  width = (width * maxDimension) / height
+                  height = maxDimension
+                }
+              }
+              
+              canvas.width = width
+              canvas.height = height
+              
+              // Draw image
+              ctx.drawImage(img, 0, 0, width, height)
+              
+              // Try different quality levels
+              const tryCompress = (currentQuality) => {
+                try {
+                  const dataUrl = canvas.toDataURL('image/jpeg', currentQuality)
+                  const compressedSizeKB = (dataUrl.length * 0.75) / 1024
+                  
+                  console.log(`Quality: ${currentQuality}, Size: ${compressedSizeKB.toFixed(1)}KB`)
+                  
+                  if (compressedSizeKB <= maxSizeKB || currentQuality <= 0.1) {
+                    resolve({
+                      dataUrl,
+                      sizeKB: compressedSizeKB.toFixed(1),
+                      quality: currentQuality
+                    })
+                  } else {
+                    // Reduce quality and try again
+                    tryCompress(currentQuality - 0.1)
+                  }
+                } catch (error) {
+                  console.error('Canvas compression error:', error)
+                  // Fallback to original base64 if canvas fails
+                  resolve({
+                    dataUrl: base64Data,
+                    sizeKB: sizeKB.toFixed(1),
+                    quality: 1.0
+                  })
+                }
+              }
+              
+              tryCompress(0.7) // Start with 70% quality
+              
+            } catch (error) {
+              console.error('Image processing error:', error)
+              // Fallback to original base64
               resolve({
-                dataUrl,
+                dataUrl: base64Data,
                 sizeKB: sizeKB.toFixed(1),
-                quality: currentQuality
+                quality: 1.0
               })
-            } else {
-              // Reduce quality and try again
-              tryCompress(currentQuality - 0.1)
             }
           }
           
-          tryCompress(quality)
+          img.onerror = () => {
+            // Fallback to original base64 if image loading fails
+            resolve({
+              dataUrl: base64Data,
+              sizeKB: sizeKB.toFixed(1),
+              quality: 1.0
+            })
+          }
+          
+          img.src = base64Data
+          
         } catch (error) {
           reject(error)
         }
       }
       
-      img.onerror = (error) => {
-        reject(new Error('Failed to load image'))
+      reader.onerror = (error) => {
+        reject(new Error('Failed to read file'))
       }
       
-      img.src = URL.createObjectURL(file)
+      reader.readAsDataURL(file)
     })
   }
 
