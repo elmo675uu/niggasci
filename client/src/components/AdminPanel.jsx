@@ -1,29 +1,14 @@
 import React, { useState } from 'react'
-import { X, Save, Plus, Twitter, TrendingUp, Zap } from 'lucide-react'
-import RichTextEditor from './RichTextEditor'
+import { X, Save, Twitter, TrendingUp, Zap } from 'lucide-react'
 
-const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh, onAdminLogin }) => {
-  const [activeTab, setActiveTab] = useState('posts')
+const AdminPanel = ({ config, onClose, onUpdateConfig, onAdminLogin }) => {
+  const [activeTab, setActiveTab] = useState('config')
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [newPost, setNewPost] = useState({
-    title: '',
-    content: '',
-    author: 'Admin'
-  })
-  const [configData, setConfigData] = useState({
-    title: config.title || 'NIGGA SCIENCE',
-    socialLinks: {
-      twitter: config.socialLinks?.twitter || '',
-      telegram: config.socialLinks?.telegram || '',
-      discord: config.socialLinks?.discord || '',
-      medium: config.socialLinks?.medium || ''
-    }
-  })
+  const [configData, setConfigData] = useState(config)
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    
     try {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
@@ -33,87 +18,67 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh, onAdmin
       
       if (response.ok) {
         setIsAuthenticated(true)
-        setPassword('')
-        onAdminLogin() // Notify parent component that admin is authenticated
+        onAdminLogin()
       } else {
         alert('Invalid password')
       }
     } catch (error) {
-      console.error('Login failed:', error)
+      console.error('Login error:', error)
       alert('Login failed')
     }
   }
 
-  const handleCreatePost = async (e) => {
-    e.preventDefault()
-    
+  const handleSaveConfig = async () => {
     try {
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newPost,
-          pinned: true,
-          admin: true
-        })
-      })
-      
-      if (response.ok) {
-        setNewPost({ title: '', content: '', author: 'Admin' })
-        onRefresh()
-      }
+      await onUpdateConfig(configData)
+      alert('Configuration saved successfully!')
     } catch (error) {
-      console.error('Failed to create post:', error)
+      console.error('Save error:', error)
+      alert('Failed to save configuration')
     }
   }
 
-  const handleUpdateConfig = async (e) => {
-    e.preventDefault()
-    
-    try {
-      await onUpdateConfig(configData)
-      alert('Configuration updated successfully!')
-    } catch (error) {
-      console.error('Failed to update config:', error)
-      alert('Failed to update configuration')
-    }
+  const handleConfigChange = (field, value) => {
+    setConfigData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSocialLinkChange = (platform, value) => {
+    setConfigData(prev => ({
+      ...prev,
+      socialLinks: {
+        ...prev.socialLinks,
+        [platform]: value
+      }
+    }))
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="card max-w-md w-full">
-          <h2 className="text-2xl font-heading font-bold text-primary-500 mb-6">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="card max-w-md w-full mx-4">
+          <h3 className="text-xl font-heading font-bold text-primary-500 mb-4">
             Admin Login
-          </h2>
-          
+          </h3>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Admin Password
+                Password
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter admin password"
                 className="input-field w-full"
+                placeholder="Enter admin password"
                 required
               />
             </div>
-            
-            <div className="flex space-x-3">
-              <button type="submit" className="btn-primary flex-1">
-                Login
-              </button>
-              <button 
-                type="button" 
-                onClick={onClose}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
+            <button type="submit" className="btn-primary w-full">
+              Login
+            </button>
           </form>
         </div>
       </div>
@@ -121,9 +86,8 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh, onAdmin
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="card max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="card max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-heading font-bold text-primary-500">
             Admin Panel
@@ -137,188 +101,188 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh, onAdmin
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 mb-6 bg-dark-800 p-1 rounded-lg">
-          <button
-            onClick={() => setActiveTab('posts')}
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-300 ${
-              activeTab === 'posts'
-                ? 'bg-primary-500 text-dark-950'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Manage Posts
-          </button>
+        <div className="flex space-x-4 mb-6 border-b border-dark-700">
           <button
             onClick={() => setActiveTab('config')}
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-300 ${
+            className={`pb-2 px-1 font-medium transition-colors ${
               activeTab === 'config'
-                ? 'bg-primary-500 text-dark-950'
-                : 'text-gray-400 hover:text-white'
+                ? 'text-primary-400 border-b-2 border-primary-400'
+                : 'text-gray-400 hover:text-gray-300'
             }`}
           >
             Configuration
           </button>
         </div>
 
-        {/* Posts Tab */}
-        {activeTab === 'posts' && (
+        {/* Configuration Tab */}
+        {activeTab === 'config' && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-heading font-bold text-primary-400 mb-4">
-                Create New Admin Post
+            {/* Basic Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                <Zap size={20} className="mr-2" />
+                Basic Settings
               </h3>
               
-              <form onSubmit={handleCreatePost} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Site Title
+                </label>
                 <input
                   type="text"
-                  value={newPost.title}
-                  onChange={(e) => setNewPost({...newPost, title: e.target.value})}
-                  placeholder="Post title"
+                  value={configData.title || ''}
+                  onChange={(e) => handleConfigChange('title', e.target.value)}
                   className="input-field w-full"
-                  required
                 />
-                
-                <RichTextEditor
-                  value={newPost.content}
-                  onChange={(value) => setNewPost({...newPost, content: value})}
-                  placeholder="Post content"
-                />
-                
-                <div className="flex justify-end">
-                  <button type="submit" className="btn-primary flex items-center space-x-2">
-                    <Plus size={20} />
-                    <span>Create Post</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-heading font-bold text-primary-400 mb-4">
-                Existing Admin Posts
-              </h3>
-              
-              <div className="space-y-3">
-                {posts.pinned && posts.pinned.length > 0 ? (
-                  posts.pinned.map(post => (
-                    <div key={post.id} className="p-4 bg-dark-800/50 rounded-lg border border-dark-600">
-                      <h4 className="font-bold text-primary-400">{post.title}</h4>
-                      <p className="text-gray-300 text-sm mt-1">{post.content}</p>
-                      <p className="text-gray-500 text-xs mt-2">
-                        By {post.author} • {new Date(post.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-400 text-center py-8">No admin posts yet</p>
-                )}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Config Tab */}
-        {activeTab === 'config' && (
-          <form onSubmit={handleUpdateConfig} className="space-y-6">
-            <div>
-              <h3 className="text-lg font-heading font-bold text-primary-400 mb-4">
-                Site Configuration
-              </h3>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Site Title
-                  </label>
-                  <input
-                    type="text"
-                    value={configData.title}
-                    onChange={(e) => setConfigData({...configData, title: e.target.value})}
-                    className="input-field w-full"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Site Description
+                </label>
+                <textarea
+                  value={configData.description || ''}
+                  onChange={(e) => handleConfigChange('description', e.target.value)}
+                  className="input-field w-full h-20 resize-none"
+                />
               </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-heading font-bold text-primary-400 mb-4">
+            {/* Social Links */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                <Twitter size={20} className="mr-2" />
                 Social Links
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <Twitter size={16} className="mr-2" />
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Twitter
                   </label>
                   <input
                     type="url"
-                    value={configData.socialLinks.twitter}
-                    onChange={(e) => setConfigData({
-                      ...configData, 
-                      socialLinks: {...configData.socialLinks, twitter: e.target.value}
-                    })}
+                    value={configData.socialLinks?.twitter || ''}
+                    onChange={(e) => handleSocialLinkChange('twitter', e.target.value)}
+                    className="input-field w-full"
                     placeholder="https://twitter.com/username"
-                    className="input-field w-full"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <img 
-                      src="/dexscreener-favicon.ico" 
-                      alt="Dexscreener" 
-                      width="16" 
-                      height="16"
-                      className="w-4 h-4 mr-2"
-                    />
-                    Dexscreener
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Telegram
                   </label>
                   <input
                     type="url"
-                    value={configData.socialLinks.dexscreener}
-                    onChange={(e) => setConfigData({
-                      ...configData, 
-                      socialLinks: {...configData.socialLinks, dexscreener: e.target.value}
-                    })}
-                    placeholder="https://dexscreener.com/solana/token"
+                    value={configData.socialLinks?.telegram || ''}
+                    onChange={(e) => handleSocialLinkChange('telegram', e.target.value)}
                     className="input-field w-full"
+                    placeholder="https://t.me/username"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <img 
-                      src="/pumpfun-favicon.svg" 
-                      alt="Pump Fun" 
-                      width="16" 
-                      height="16"
-                      className="w-4 h-4 mr-2"
-                    />
-                    Pump Fun
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Discord
                   </label>
                   <input
                     type="url"
-                    value={configData.socialLinks.pumpfun}
-                    onChange={(e) => setConfigData({
-                      ...configData, 
-                      socialLinks: {...configData.socialLinks, pumpfun: e.target.value}
-                    })}
-                    placeholder="https://pump.fun/token"
+                    value={configData.socialLinks?.discord || ''}
+                    onChange={(e) => handleSocialLinkChange('discord', e.target.value)}
                     className="input-field w-full"
+                    placeholder="https://discord.gg/invite"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Medium
+                  </label>
+                  <input
+                    type="url"
+                    value={configData.socialLinks?.medium || ''}
+                    onChange={(e) => handleSocialLinkChange('medium', e.target.value)}
+                    className="input-field w-full"
+                    placeholder="https://medium.com/@username"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <button type="submit" className="btn-primary flex items-center space-x-2">
+            {/* Audio Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                <TrendingUp size={20} className="mr-2" />
+                Audio Settings
+              </h3>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Audio URL
+                </label>
+                <input
+                  type="url"
+                  value={configData.audioUrl || ''}
+                  onChange={(e) => handleConfigChange('audioUrl', e.target.value)}
+                  className="input-field w-full"
+                  placeholder="/theme.mp3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={configData.audioAutoplay !== false}
+                      onChange={(e) => handleConfigChange('audioAutoplay', e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-300">Auto Play</span>
+                  </label>
+                </div>
+                
+                <div>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={configData.audioLoop !== false}
+                      onChange={(e) => handleConfigChange('audioLoop', e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-300">Loop</span>
+                  </label>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Volume
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={configData.audioVolume || 0.3}
+                    onChange={(e) => handleConfigChange('audioVolume', parseFloat(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end pt-6 border-t border-dark-700">
+              <button
+                onClick={handleSaveConfig}
+                className="btn-primary flex items-center space-x-2"
+              >
                 <Save size={20} />
                 <span>Save Configuration</span>
               </button>
             </div>
-          </form>
+          </div>
         )}
       </div>
     </div>

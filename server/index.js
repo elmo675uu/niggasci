@@ -9,7 +9,6 @@ import dotenv from 'dotenv'
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
-// multer removed - no more file uploads
 
 // Load environment variables
 dotenv.config()
@@ -18,9 +17,12 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5001
 
-// File upload functionality removed - use external URLs only
+// File paths
+const POSTS_FILE = path.join(__dirname, 'posts.json')
+const CONFIG_FILE = path.join(__dirname, 'config.json')
+const BOARDS_FILE = path.join(__dirname, 'boards.json')
 
 // Security middleware
 app.use(helmet({
@@ -31,7 +33,8 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
       scriptSrc: ["'self'"],
-      connectSrc: ["'self'"]
+      connectSrc: ["'self'", "http://127.0.0.1:5001"],
+      frameSrc: ["'self'", "https://www.youtube.com"]
     }
   }
 }))
@@ -51,98 +54,71 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false
-})
-
-const postLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 5, // limit each IP to 5 posts per minute
-  message: 'Too many posts from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false
 })
 
 app.use(limiter)
 
-// Body parsers (be tolerant of proxies changing content-type)
+// Body parsers
 app.use(express.json({ limit: '10mb' }))
 app.use(express.text({ type: 'text/plain', limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-
-// Static file serving removed - no more uploads
 
 // Fallback: if body came as plain text "key:value" lines, coerce to object
 app.use((req, _res, next) => {
   if (req.body && typeof req.body === 'string') {
     const text = req.body.trim()
-    // Try JSON first
     try {
-      const parsed = JSON.parse(text)
-      req.body = parsed
-      return next()
-    } catch (_) {}
-
-    // Parse simple key:value or key=value lines
-    const obj = {}
-    const lines = text.split(/\r?\n|&/)
-    for (const line of lines) {
-      const m = line.split(/[:=]/)
-      if (m.length >= 2) {
-        const key = m[0].trim()
-        const val = m.slice(1).join(':').trim()
-        if (key) obj[key] = val
-      }
-    }
-    if (Object.keys(obj).length > 0) {
-      req.body = obj
+      req.body = JSON.parse(text)
+      req.headers['content-type'] = 'application/json'
+    } catch (e) {
+      // Not JSON, leave as text
     }
   }
   next()
 })
 
-// File paths
-const POSTS_FILE = path.join(__dirname, 'posts.json')
-const CONFIG_FILE = path.join(__dirname, 'config.json')
-
 // Initialize data files if they don't exist
 async function initializeFiles() {
   try {
-    // Initialize posts.json
+    // Initialize boards.json
+    try {
+      await fs.access(BOARDS_FILE)
+    } catch {
+      const initialBoards = {
+        boards: [
+          {
+            id: "general",
+            name: "General",
+            description: "General discussions about nigga science",
+            created: Date.now(),
+            admin: true
+          },
+          {
+            id: "science",
+            name: "Science",
+            description: "Scientific discussions and research",
+            created: Date.now(),
+            admin: true
+          },
+          {
+            id: "memes",
+            name: "Memes",
+            description: "Funny content and memes",
+            created: Date.now(),
+            admin: true
+          }
+        ]
+      }
+      await fs.writeFile(BOARDS_FILE, JSON.stringify(initialBoards, null, 2))
+    }
+
+    // Initialize posts.json with new structure
     try {
       await fs.access(POSTS_FILE)
     } catch {
       const initialPosts = {
-        pinned: [
-          {
-            id: uuidv4(),
-            title: "Welcome to NIGGA SCIENCE",
-            content: "Welcome to the NIGGA SCIENCE imageboard! This is a community-driven platform for sharing ideas, images, and discussions. Feel free to post your thoughts, share images, or start conversations.\n\nRemember to be respectful and follow community guidelines. Let's build something amazing together!",
-            author: "Admin",
-            timestamp: Date.now(),
-            pinned: true,
-            admin: true
-          },
-          {
-            id: uuidv4(),
-            title: "How to Use This Platform",
-            content: "Here's how to get started:\n\n1. **Create Posts**: Use the form at the top to create new posts. You can include text, images, or both.\n\n2. **Share Images**: Paste image URLs in the image field to display them in your posts.\n\n3. **Links**: Any URLs in your post content will automatically become clickable links.\n\n4. **Anonymous Posting**: You can post anonymously or choose a custom name.\n\n5. **Admin Posts**: Posts marked with 'ADMIN' are official announcements and updates.",
-            author: "Admin",
-            timestamp: Date.now() + 1000,
-            pinned: true,
-            admin: true
-          },
-          {
-            id: uuidv4(),
-            title: "Community Guidelines",
-            content: "To maintain a positive community environment, please follow these guidelines:\n\n• Be respectful to other users\n• No spam or excessive posting\n• Keep content relevant and constructive\n• Report any inappropriate content\n• Have fun and be creative!\n\nViolations may result in post removal or temporary restrictions. Let's keep this space welcoming for everyone!",
-            author: "Admin",
-            timestamp: Date.now() + 2000,
-            pinned: true,
-            admin: true
-          }
-        ],
-        user: []
+        threads: {},
+        replies: {}
       }
       await fs.writeFile(POSTS_FILE, JSON.stringify(initialPosts, null, 2))
     }
@@ -153,15 +129,17 @@ async function initializeFiles() {
     } catch {
       const initialConfig = {
         title: "NIGGA SCIENCE",
+        description: "The ultimate imageboard for nigga science discussions",
         socialLinks: {
-          twitter: "https://twitter.com/niggachain",
-          dexscreener: "https://dexscreener.com/solana/niggachain",
-          pumpfun: "https://pump.fun/niggachain"
+          twitter: "https://twitter.com/niggascience",
+          telegram: "https://t.me/niggascience",
+          discord: "https://discord.gg/niggascience",
+          medium: "https://medium.com/@niggascience"
         },
         audioUrl: "/theme.mp3",
         audioAutoplay: true,
         audioLoop: true,
-        audioVolume: 0.5
+        audioVolume: 0.3
       }
       await fs.writeFile(CONFIG_FILE, JSON.stringify(initialConfig, null, 2))
     }
@@ -192,220 +170,245 @@ function validatePost(post) {
   const errors = []
   
   if (!post.title && !post.content && !post.imageUrl) {
-    errors.push('At least one field (title, content, or imageUrl) is required')
+    errors.push('At least one field (title, content, or image) is required')
   }
   
   if (post.title && post.title.length > 200) {
     errors.push('Title must be less than 200 characters')
   }
   
-  if (post.content && post.content.length > 4000) {
-    errors.push('Content must be less than 4000 characters')
+  if (post.content && post.content.length > 10000) {
+    errors.push('Content must be less than 10,000 characters')
   }
   
   if (post.author && post.author.length > 50) {
     errors.push('Author name must be less than 50 characters')
   }
   
-  if (post.imageUrl && !isValidUrl(post.imageUrl)) {
-    errors.push('Invalid image URL format')
-  }
-  
   return errors
 }
 
-function isValidUrl(string) {
-  try {
-    new URL(string)
-    return true
-  } catch (_) {
-    return false
-  }
-}
+// API Routes
 
-// Authentication middleware
-async function authenticateAdmin(req, res, next) {
-  const { password } = req.body
-  
-  if (!password) {
-    return res.status(400).json({ error: 'Password required' })
-  }
-  
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
-  
+// Get all boards
+app.get('/api/boards', async (req, res) => {
   try {
-    const isValid = await bcrypt.compare(password, adminPassword) || password === adminPassword
-    if (isValid) {
-      req.isAdmin = true
-      next()
-    } else {
-      res.status(401).json({ error: 'Invalid password' })
-    }
+    const data = await fs.readFile(BOARDS_FILE, 'utf8')
+    const boards = JSON.parse(data)
+    res.json(boards)
   } catch (error) {
-    res.status(500).json({ error: 'Authentication error' })
-  }
-}
-
-// Routes
-
-// Get all posts
-app.get('/api/posts', async (req, res) => {
-  try {
-    const data = await fs.readFile(POSTS_FILE, 'utf8')
-    const posts = JSON.parse(data)
-    res.json(posts)
-  } catch (error) {
-    console.error('Error reading posts:', error)
-    res.status(500).json({ error: 'Failed to load posts' })
+    console.error('Error reading boards:', error)
+    res.status(500).json({ error: 'Failed to read boards' })
   }
 })
 
-// Create new post
-app.post('/api/posts', postLimiter, async (req, res) => {
+// Create new board (admin only)
+app.post('/api/boards', async (req, res) => {
   try {
-    const { title, content, author, imageUrl, pinned = false, admin = false } = req.body || {}
+    const { name, description } = req.body
     
-    // Validate input
+    if (!name || !description) {
+      return res.status(400).json({ error: 'Name and description are required' })
+    }
+    
+    const data = await fs.readFile(BOARDS_FILE, 'utf8')
+    const boards = JSON.parse(data)
+    
+    const boardId = name.toLowerCase().replace(/[^a-z0-9]/g, '')
+    
+    // Check if board already exists
+    if (boards.boards.find(b => b.id === boardId)) {
+      return res.status(400).json({ error: 'Board already exists' })
+    }
+    
+    const newBoard = {
+      id: boardId,
+      name: sanitizeInput(name),
+      description: sanitizeInput(description),
+      created: Date.now(),
+      admin: true
+    }
+    
+    boards.boards.push(newBoard)
+    await fs.writeFile(BOARDS_FILE, JSON.stringify(boards, null, 2))
+    
+    res.json({ success: true, board: newBoard })
+  } catch (error) {
+    console.error('Error creating board:', error)
+    res.status(500).json({ error: 'Failed to create board' })
+  }
+})
+
+// Get threads for a board
+app.get('/api/boards/:boardId/threads', async (req, res) => {
+  try {
+    const { boardId } = req.params
+    const data = await fs.readFile(POSTS_FILE, 'utf8')
+    const posts = JSON.parse(data)
+    
+    const boardThreads = posts.threads[boardId] || []
+    res.json({ threads: boardThreads })
+  } catch (error) {
+    console.error('Error reading threads:', error)
+    res.status(500).json({ error: 'Failed to read threads' })
+  }
+})
+
+// Create new thread
+app.post('/api/boards/:boardId/threads', async (req, res) => {
+  try {
+    const { boardId } = req.params
+    const { title, content, author, imageUrl } = req.body
+    
     const errors = validatePost({ title, content, author, imageUrl })
     if (errors.length > 0) {
       return res.status(400).json({ errors })
     }
     
-    // Sanitize input
-    const sanitizedPost = {
-      id: uuidv4(),
+    const data = await fs.readFile(POSTS_FILE, 'utf8')
+    const posts = JSON.parse(data)
+    
+    const threadId = uuidv4()
+    const newThread = {
+      id: threadId,
+      boardId,
       title: sanitizeInput(title),
       content: sanitizeInput(content),
       author: sanitizeInput(author) || 'Anonymous',
       imageUrl: imageUrl ? sanitizeInput(imageUrl) : '',
       timestamp: Date.now(),
-      pinned: Boolean(pinned),
-      admin: Boolean(admin)
+      likes: [],
+      replyCount: 0
     }
     
-    // Read current posts
-    const data = await fs.readFile(POSTS_FILE, 'utf8')
-    const posts = JSON.parse(data)
-    
-    // Add new post
-    if (sanitizedPost.pinned) {
-      posts.pinned.push(sanitizedPost)
-    } else {
-      posts.user.push(sanitizedPost)
+    if (!posts.threads[boardId]) {
+      posts.threads[boardId] = []
     }
     
-    // Save posts
+    posts.threads[boardId].unshift(newThread)
     await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
     
-    res.status(201).json(sanitizedPost)
+    res.json({ success: true, thread: newThread })
   } catch (error) {
-    console.error('Error creating post:', error)
-    res.status(500).json({ error: 'Failed to create post' })
+    console.error('Error creating thread:', error)
+    res.status(500).json({ error: 'Failed to create thread' })
   }
 })
 
-// File upload endpoint removed - use external URLs only
-
-// Update post
-app.put('/api/posts/:id', async (req, res) => {
+// Get thread with replies
+app.get('/api/threads/:threadId', async (req, res) => {
   try {
-    const { id } = req.params
-    const { title, content, author, imageUrl } = req.body
-    
-    // Validate input
-    const errors = validatePost({ title, content, author, imageUrl })
-    if (errors.length > 0) {
-      return res.status(400).json({ errors })
-    }
-    
-    // Read current posts
+    const { threadId } = req.params
     const data = await fs.readFile(POSTS_FILE, 'utf8')
     const posts = JSON.parse(data)
     
-    // Find and update post
-    let postFound = false
-    const allPosts = [...posts.pinned, ...posts.user]
-    
-    for (const post of allPosts) {
-      if (post.id === id) {
-        post.title = sanitizeInput(title)
-        post.content = sanitizeInput(content)
-        post.author = sanitizeInput(author) || 'Anonymous'
-        post.imageUrl = imageUrl ? sanitizeInput(imageUrl) : ''
-        post.updatedAt = Date.now()
-        postFound = true
+    // Find thread
+    let thread = null
+    for (const boardId in posts.threads) {
+      const found = posts.threads[boardId].find(t => t.id === threadId)
+      if (found) {
+        thread = found
         break
       }
     }
     
-    if (!postFound) {
-      return res.status(404).json({ error: 'Post not found' })
+    if (!thread) {
+      return res.status(404).json({ error: 'Thread not found' })
     }
     
-    // Save posts
-    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
+    // Get replies
+    const replies = posts.replies[threadId] || []
     
-    res.json({ success: true })
+    res.json({ thread, replies })
   } catch (error) {
-    console.error('Error updating post:', error)
-    res.status(500).json({ error: 'Failed to update post' })
+    console.error('Error reading thread:', error)
+    res.status(500).json({ error: 'Failed to read thread' })
   }
 })
 
-// Delete post
-app.delete('/api/posts/:id', async (req, res) => {
+// Create reply to thread
+app.post('/api/threads/:threadId/replies', async (req, res) => {
   try {
-    const { id } = req.params
+    const { threadId } = req.params
+    const { content, author, imageUrl } = req.body
     
-    // Read current posts
+    const errors = validatePost({ content, author, imageUrl })
+    if (errors.length > 0) {
+      return res.status(400).json({ errors })
+    }
+    
     const data = await fs.readFile(POSTS_FILE, 'utf8')
     const posts = JSON.parse(data)
     
-    // Remove post from both arrays
-    posts.pinned = posts.pinned.filter(post => post.id !== id)
-    posts.user = posts.user.filter(post => post.id !== id)
+    const replyId = uuidv4()
+    const newReply = {
+      id: replyId,
+      threadId,
+      content: sanitizeInput(content),
+      author: sanitizeInput(author) || 'Anonymous',
+      imageUrl: imageUrl ? sanitizeInput(imageUrl) : '',
+      timestamp: Date.now(),
+      likes: []
+    }
     
-    // Save posts
+    if (!posts.replies[threadId]) {
+      posts.replies[threadId] = []
+    }
+    
+    posts.replies[threadId].push(newReply)
+    
+    // Update thread reply count
+    for (const boardId in posts.threads) {
+      const thread = posts.threads[boardId].find(t => t.id === threadId)
+      if (thread) {
+        thread.replyCount = (thread.replyCount || 0) + 1
+        break
+      }
+    }
+    
     await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
     
-    res.json({ success: true })
+    res.json({ success: true, reply: newReply })
   } catch (error) {
-    console.error('Error deleting post:', error)
-    res.status(500).json({ error: 'Failed to delete post' })
+    console.error('Error creating reply:', error)
+    res.status(500).json({ error: 'Failed to create reply' })
   }
 })
 
-// Pin/Unpin post
+// Like/unlike thread or reply
 app.post('/api/posts/:id/:action', async (req, res) => {
   try {
     const { id, action } = req.params
     
-    if (!['pin', 'unpin', 'like', 'unlike'].includes(action)) {
+    if (!['like', 'unlike'].includes(action)) {
       return res.status(400).json({ error: 'Invalid action' })
     }
     
-    // Read current posts
     const data = await fs.readFile(POSTS_FILE, 'utf8')
     const posts = JSON.parse(data)
     
-    // Find post
+    // Find post (thread or reply)
     let post = null
-    let sourceArray = null
-    let targetArray = null
+    let isThread = false
     
-    // Check pinned posts
-    const pinnedIndex = posts.pinned.findIndex(p => p.id === id)
-    if (pinnedIndex !== -1) {
-      post = posts.pinned[pinnedIndex]
-      sourceArray = posts.pinned
-      targetArray = posts.user
-    } else {
-      // Check user posts
-      const userIndex = posts.user.findIndex(p => p.id === id)
-      if (userIndex !== -1) {
-        post = posts.user[userIndex]
-        sourceArray = posts.user
-        targetArray = posts.pinned
+    // Check threads
+    for (const boardId in posts.threads) {
+      const found = posts.threads[boardId].find(t => t.id === id)
+      if (found) {
+        post = found
+        isThread = true
+        break
+      }
+    }
+    
+    // Check replies
+    if (!post) {
+      for (const threadId in posts.replies) {
+        const found = posts.replies[threadId].find(r => r.id === id)
+        if (found) {
+          post = found
+          break
+        }
       }
     }
     
@@ -413,45 +416,23 @@ app.post('/api/posts/:id/:action', async (req, res) => {
       return res.status(404).json({ error: 'Post not found' })
     }
     
-    // Handle different actions
-    if (action === 'pin' && sourceArray === posts.user) {
-      posts.user.splice(posts.user.findIndex(p => p.id === id), 1)
-      post.pinned = true
-      posts.pinned.push(post)
-    } else if (action === 'unpin' && sourceArray === posts.pinned) {
-      posts.pinned.splice(posts.pinned.findIndex(p => p.id === id), 1)
-      post.pinned = false
-      posts.user.push(post)
-    } else if (action === 'like') {
-      // Initialize likes array if it doesn't exist
-      if (!post.likes) {
-        post.likes = []
-      }
-      // Generate a unique user ID for this session (could be enhanced with proper user auth)
-      const userId = req.ip + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-      // Add like with unique identifier
+    // Initialize likes array if it doesn't exist
+    if (!post.likes) {
+      post.likes = []
+    }
+    
+    const userId = req.ip + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    
+    if (action === 'like') {
       if (!post.likes.includes(userId)) {
         post.likes.push(userId)
       }
     } else if (action === 'unlike') {
-      // Initialize likes array if it doesn't exist
-      if (!post.likes) {
-        post.likes = []
-      }
-      // For unlike, we'll use a different approach - track by IP and timestamp
-      const userLikeId = req.ip + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-      // Remove the most recent like from this IP (simple approach)
-      const ipLikes = post.likes.filter(like => like.startsWith(req.ip))
-      if (ipLikes.length > 0) {
-        const latestLike = ipLikes[ipLikes.length - 1]
-        post.likes = post.likes.filter(like => like !== latestLike)
-      }
+      post.likes = post.likes.filter(like => like !== userId)
     }
     
-    // Save posts
     await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
     
-    // Return the updated post data for live updates
     res.json({ 
       success: true, 
       post: {
@@ -461,12 +442,12 @@ app.post('/api/posts/:id/:action', async (req, res) => {
       }
     })
   } catch (error) {
-    console.error('Error toggling pin:', error)
-    res.status(500).json({ error: 'Failed to toggle pin' })
+    console.error('Error toggling like:', error)
+    res.status(500).json({ error: 'Failed to toggle like' })
   }
 })
 
-// Get configuration
+// Get config
 app.get('/api/config', async (req, res) => {
   try {
     const data = await fs.readFile(CONFIG_FILE, 'utf8')
@@ -474,75 +455,53 @@ app.get('/api/config', async (req, res) => {
     res.json(config)
   } catch (error) {
     console.error('Error reading config:', error)
-    res.status(500).json({ error: 'Failed to load configuration' })
+    res.status(500).json({ error: 'Failed to read config' })
   }
 })
 
-// Update configuration
+// Update config (admin only)
 app.put('/api/config', async (req, res) => {
   try {
     const newConfig = req.body
-    
-    // Validate required fields
-    if (!newConfig.title) {
-      return res.status(400).json({ error: 'Title is required' })
-    }
-    
-    // Sanitize configuration
-    const sanitizedConfig = {
-      title: sanitizeInput(newConfig.title),
-      socialLinks: {
-        twitter: sanitizeInput(newConfig.socialLinks?.twitter || ''),
-        telegram: sanitizeInput(newConfig.socialLinks?.telegram || ''),
-        discord: sanitizeInput(newConfig.socialLinks?.discord || ''),
-        medium: sanitizeInput(newConfig.socialLinks?.medium || '')
-      },
-      audioUrl: sanitizeInput(newConfig.audioUrl || ''),
-      audioAutoplay: Boolean(newConfig.audioAutoplay),
-      audioLoop: Boolean(newConfig.audioLoop),
-      audioVolume: Math.max(0, Math.min(1, parseFloat(newConfig.audioVolume) || 0.5))
-    }
-    
-    // Save configuration
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(sanitizedConfig, null, 2))
-    
-    res.json(sanitizedConfig)
+    await fs.writeFile(CONFIG_FILE, JSON.stringify(newConfig, null, 2))
+    res.json({ success: true })
   } catch (error) {
     console.error('Error updating config:', error)
-    res.status(500).json({ error: 'Failed to update configuration' })
+    res.status(500).json({ error: 'Failed to update config' })
   }
 })
 
 // Admin login
-app.post('/api/admin/login', authenticateAdmin, (req, res) => {
-  res.json({ success: true, message: 'Login successful' })
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { password } = req.body
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
+    
+    if (password === adminPassword) {
+      res.json({ success: true, message: 'Login successful' })
+    } else {
+      res.status(401).json({ error: 'Invalid password' })
+    }
+  } catch (error) {
+    console.error('Error during login:', error)
+    res.status(500).json({ error: 'Login failed' })
+  }
 })
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() })
-})
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err)
-  res.status(500).json({ error: 'Internal server error' })
-})
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' })
-})
-
-// Start server
-async function startServer() {
-  await initializeFiles()
-  
-  app.listen(PORT, () => {
-    console.log(`🚀 NIGGA SCIENCE server running on port ${PORT}`)
-    console.log(`📁 Data files: ${__dirname}`)
-    console.log(`🔒 Admin password: ${process.env.ADMIN_PASSWORD || 'admin123'}`)
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString() 
   })
-}
+})
 
-startServer().catch(console.error)
+// Initialize files and start server
+initializeFiles().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+  })
+}).catch(error => {
+  console.error('Failed to initialize:', error)
+  process.exit(1)
+})
