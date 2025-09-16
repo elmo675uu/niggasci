@@ -66,7 +66,7 @@ const Header = ({ config, onToggleAdmin, showAdmin }) => {
               aria-label="Pump Fun"
             >
               <img 
-                src="/pumpfun-favicon.ico" 
+                src="/pumpfun-favicon.svg" 
                 alt="Pump Fun" 
                 width="20" 
                 height="20"
