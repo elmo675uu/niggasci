@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, MessageSquare, Users, Clock, Edit, Trash2 } from 'lucide-react'
+import { Plus, MessageSquare, Users, Clock, Edit, Trash2, Info, X } from 'lucide-react'
+import RichTextEditor from './RichTextEditor'
 
 const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [boards, setBoards] = useState([])
@@ -9,9 +10,14 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [isCreating, setIsCreating] = useState(false)
   const [editingBoard, setEditingBoard] = useState(null)
   const [editBoardData, setEditBoardData] = useState({ name: '', description: '' })
+  const [infoPosts, setInfoPosts] = useState([])
+  const [showCreateInfoPost, setShowCreateInfoPost] = useState(false)
+  const [newInfoPost, setNewInfoPost] = useState({ title: '', content: '' })
+  const [isCreatingInfoPost, setIsCreatingInfoPost] = useState(false)
 
   useEffect(() => {
     loadBoards()
+    loadInfoPosts()
   }, [])
 
   const loadBoards = async () => {
@@ -39,6 +45,66 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       }
     } catch (error) {
       console.error('Failed to load boards:', error)
+    }
+  }
+
+  const loadInfoPosts = async () => {
+    try {
+      const response = await fetch('/api/info-posts')
+      if (response.ok) {
+        const data = await response.json()
+        setInfoPosts(data.posts || [])
+      }
+    } catch (error) {
+      console.error('Failed to load info posts:', error)
+    }
+  }
+
+  const handleCreateInfoPost = async (e) => {
+    e.preventDefault()
+    if (!newInfoPost.title || !newInfoPost.content) return
+
+    setIsCreatingInfoPost(true)
+    try {
+      const response = await fetch('/api/info-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newInfoPost)
+      })
+
+      if (response.ok) {
+        setNewInfoPost({ title: '', content: '' })
+        setShowCreateInfoPost(false)
+        loadInfoPosts()
+      } else {
+        const error = await response.json()
+        alert('Failed to create info post: ' + (error.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Failed to create info post:', error)
+      alert('Failed to create info post')
+    } finally {
+      setIsCreatingInfoPost(false)
+    }
+  }
+
+  const handleDeleteInfoPost = async (postId) => {
+    if (!confirm('Are you sure you want to delete this info post?')) return
+
+    try {
+      const response = await fetch(`/api/info-posts/${postId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        loadInfoPosts()
+      } else {
+        const error = await response.json()
+        alert('Failed to delete info post: ' + (error.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Failed to delete info post:', error)
+      alert('Failed to delete info post')
     }
   }
 
@@ -117,6 +183,88 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       console.error('Failed to delete board:', error)
       alert('Failed to delete board')
     }
+  }
+
+  const renderHTMLContent = (content) => {
+    if (!content) return ''
+    
+    // Split by newlines first
+    const lines = content.split('\n')
+    const processedLines = lines.map((line, index) => {
+      if (line.trim() === '') {
+        return <br key={index} />
+      }
+      
+      // Create a temporary div to parse HTML
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = line
+      
+      // Process each child node
+      const processedNodes = Array.from(tempDiv.childNodes).map((node, nodeIndex) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.textContent
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const tagName = node.tagName.toLowerCase()
+          const className = node.className || ''
+          const style = node.style.cssText || ''
+          
+          switch (tagName) {
+            case 'b':
+            case 'strong':
+              return <strong key={nodeIndex} className="font-bold text-white">{node.textContent}</strong>
+            case 'i':
+            case 'em':
+              return <em key={nodeIndex} className="italic text-gray-300">{node.textContent}</em>
+            case 'img':
+              const src = node.getAttribute('src')
+              const alt = node.getAttribute('alt') || ''
+              return (
+                <img
+                  key={nodeIndex}
+                  src={src}
+                  alt={alt}
+                  className="min-w-[300px] max-w-[500px] h-auto rounded-lg my-2"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                  }}
+                />
+              )
+            case 'iframe':
+              const iframeSrc = node.getAttribute('src')
+              const iframeWidth = node.getAttribute('width') || '560'
+              const iframeHeight = node.getAttribute('height') || '315'
+              const iframeTitle = node.getAttribute('title') || 'Embedded content'
+              
+              // Check if it's a YouTube Short
+              const isYouTubeShort = iframeSrc && iframeSrc.includes('youtube.com/embed/') && iframeHeight > '400'
+              
+              return (
+                <iframe
+                  key={nodeIndex}
+                  src={iframeSrc}
+                  width={iframeWidth}
+                  height={iframeHeight}
+                  title={iframeTitle}
+                  frameBorder="0"
+                  allowFullScreen
+                  className={isYouTubeShort ? "max-w-sm mx-auto" : "w-full max-w-2xl mx-auto"}
+                />
+              )
+            default:
+              return <span key={nodeIndex} dangerouslySetInnerHTML={{ __html: node.outerHTML }} />
+          }
+        }
+        return null
+      })
+      
+      return (
+        <div key={index} className="mb-1">
+          {processedNodes}
+        </div>
+      )
+    })
+    
+    return processedLines
   }
 
   return (
@@ -235,7 +383,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
           {boards.map((board) => (
             <div
               key={board.id}
-              className="card hover:bg-dark-700/50 transition-all duration-300 group relative"
+              className="card hover:bg-dark-700/50 transition-all duration-300 group relative h-80 flex flex-col"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-heading font-bold text-primary-400 group-hover:text-primary-300">
@@ -316,11 +464,11 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                     {board.name}
                   </h4>
                   
-                  <p className="text-gray-400 text-sm mb-4">
+                  <p className="text-gray-400 text-sm mb-4 flex-grow">
                     {board.description}
                   </p>
                   
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center space-x-1">
                         <MessageSquare size={14} />
@@ -340,7 +488,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                   
                   <button
                     onClick={() => onBoardSelect(board)}
-                    className="w-full mt-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                    className="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
                   >
                     View Board
                   </button>
@@ -349,6 +497,108 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
             </div>
           ))}
         </div>
+
+        {/* Admin Info Posts Section */}
+        {isAdminAuthenticated && (
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-primary-400 flex items-center space-x-2">
+                <Info size={24} />
+                <span>Admin Information Posts</span>
+              </h2>
+              <button
+                onClick={() => setShowCreateInfoPost(true)}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <Plus size={16} />
+                <span>New Info Post</span>
+              </button>
+            </div>
+
+            {/* Info Posts List */}
+            {infoPosts.length > 0 ? (
+              <div className="space-y-4">
+                {infoPosts.map((post) => (
+                  <div key={post.id} className="card">
+                    <div className="flex items-start justify-between mb-4">
+                      <h3 className="text-xl font-bold text-primary-400">{post.title}</h3>
+                      <button
+                        onClick={() => handleDeleteInfoPost(post.id)}
+                        className="p-1 rounded bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 transition-all duration-300"
+                        title="Delete info post"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className="text-gray-300">
+                      {renderHTMLContent(post.content)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-4">
+                      Posted {new Date(post.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Info size={48} className="mx-auto mb-4 text-gray-600" />
+                <p>No information posts yet. Create one to share important updates with users.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Create Info Post Modal */}
+        {showCreateInfoPost && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-xl font-heading font-bold text-primary-500 mb-4">
+                Create Information Post
+              </h3>
+              <form onSubmit={handleCreateInfoPost} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Post Title
+                  </label>
+                  <input
+                    type="text"
+                    value={newInfoPost.title}
+                    onChange={(e) => setNewInfoPost({...newInfoPost, title: e.target.value})}
+                    placeholder="e.g., Important Update"
+                    className="input-field w-full"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Post Content
+                  </label>
+                  <RichTextEditor
+                    value={newInfoPost.content}
+                    onChange={(content) => setNewInfoPost({...newInfoPost, content})}
+                    placeholder="Write your information post here..."
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    type="submit"
+                    disabled={isCreatingInfoPost}
+                    className="btn-primary flex-1"
+                  >
+                    {isCreatingInfoPost ? 'Creating...' : 'Create Post'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateInfoPost(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-12 text-gray-500">

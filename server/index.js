@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 5001
 const POSTS_FILE = path.join(__dirname, 'posts.json')
 const CONFIG_FILE = path.join(__dirname, 'config.json')
 const BOARDS_FILE = path.join(__dirname, 'boards.json')
+const INFO_POSTS_FILE = path.join(__dirname, 'info-posts.json')
 
 // Security middleware
 app.use(helmet({
@@ -142,6 +143,16 @@ async function initializeFiles() {
          audioVolume: 0.3
        }
       await fs.writeFile(CONFIG_FILE, JSON.stringify(initialConfig, null, 2))
+    }
+
+    // Initialize info-posts.json
+    try {
+      await fs.access(INFO_POSTS_FILE)
+    } catch {
+      const initialInfoPosts = {
+        posts: []
+      }
+      await fs.writeFile(INFO_POSTS_FILE, JSON.stringify(initialInfoPosts, null, 2))
     }
   } catch (error) {
     console.error('Error initializing files:', error)
@@ -721,6 +732,70 @@ app.post('/api/admin/login', async (req, res) => {
   } catch (error) {
     console.error('Error during login:', error)
     res.status(500).json({ error: 'Login failed' })
+  }
+})
+
+// Get info posts
+app.get('/api/info-posts', async (req, res) => {
+  try {
+    const data = await fs.readFile(INFO_POSTS_FILE, 'utf8')
+    const infoPosts = JSON.parse(data)
+    res.json(infoPosts)
+  } catch (error) {
+    console.error('Error reading info posts:', error)
+    res.status(500).json({ error: 'Failed to read info posts' })
+  }
+})
+
+// Create info post (admin only)
+app.post('/api/info-posts', async (req, res) => {
+  try {
+    const { title, content } = req.body
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' })
+    }
+
+    const data = await fs.readFile(INFO_POSTS_FILE, 'utf8')
+    const infoPosts = JSON.parse(data)
+    
+    const newPost = {
+      id: uuidv4(),
+      title: sanitizeInput(title),
+      content: sanitizeInput(content),
+      timestamp: Date.now()
+    }
+    
+    infoPosts.posts.push(newPost)
+    await fs.writeFile(INFO_POSTS_FILE, JSON.stringify(infoPosts, null, 2))
+    
+    res.json({ success: true, post: newPost })
+  } catch (error) {
+    console.error('Error creating info post:', error)
+    res.status(500).json({ error: 'Failed to create info post' })
+  }
+})
+
+// Delete info post (admin only)
+app.delete('/api/info-posts/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params
+    
+    const data = await fs.readFile(INFO_POSTS_FILE, 'utf8')
+    const infoPosts = JSON.parse(data)
+    
+    const postIndex = infoPosts.posts.findIndex(post => post.id === postId)
+    if (postIndex === -1) {
+      return res.status(404).json({ error: 'Info post not found' })
+    }
+    
+    infoPosts.posts.splice(postIndex, 1)
+    await fs.writeFile(INFO_POSTS_FILE, JSON.stringify(infoPosts, null, 2))
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting info post:', error)
+    res.status(500).json({ error: 'Failed to delete info post' })
   }
 })
 
