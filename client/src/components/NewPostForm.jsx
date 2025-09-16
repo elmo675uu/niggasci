@@ -88,64 +88,36 @@ const NewPostForm = ({ onAddPost }) => {
     console.log('Starting image processing...')
     
     try {
-      // Compress image before converting to base64
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
+      // Use FileReader for simpler, more reliable base64 conversion
+      const reader = new FileReader()
       
-      img.onload = () => {
+      reader.onload = (event) => {
         try {
-          console.log('Image loaded, dimensions:', img.width, 'x', img.height)
+          const base64Data = event.target.result
+          console.log('Original file size:', file.size, 'Base64 size:', base64Data.length)
           
-          // Resize image to max 800px width/height to reduce base64 size
-          const maxSize = 800
-          let { width, height } = img
-          
-          if (width > height) {
-            if (width > maxSize) {
-              height = (height * maxSize) / width
-              width = maxSize
-            }
-          } else {
-            if (height > maxSize) {
-              width = (width * maxSize) / height
-              height = maxSize
-            }
-          }
-          
-          console.log('Resized dimensions:', width, 'x', height)
-          
-          canvas.width = width
-          canvas.height = height
-          
-          // Draw and compress
-          ctx.drawImage(img, 0, 0, width, height)
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
-          
-          console.log('Original file size:', file.size, 'Compressed base64 size:', compressedDataUrl.length)
-          
-          setUploadedImageUrl(compressedDataUrl)
+          setUploadedImageUrl(base64Data)
           setFormData(prev => ({
             ...prev,
-            imageUrl: compressedDataUrl
+            imageUrl: base64Data
           }))
           setIsUploading(false)
           console.log('Image processing completed successfully')
         } catch (error) {
-          console.error('Error during image processing:', error)
+          console.error('Error during base64 processing:', error)
           alert('Failed to process image: ' + error.message)
           setIsUploading(false)
         }
       }
       
-      img.onerror = (error) => {
-        console.error('Image load error:', error)
-        alert('Failed to load image')
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error)
+        alert('Failed to read file')
         setIsUploading(false)
       }
       
-      console.log('Setting image source...')
-      img.src = URL.createObjectURL(file)
+      console.log('Reading file as data URL...')
+      reader.readAsDataURL(file)
     } catch (error) {
       console.error('Upload error:', error)
       alert('Upload failed. Please try again. Error: ' + error.message)
