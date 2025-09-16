@@ -139,7 +139,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "What's on your mind?" 
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full">
       {/* Formatting Toolbar */}
       <div className="flex items-center space-x-1 p-2 bg-dark-800/50 rounded-lg border border-dark-600">
         <button
@@ -212,7 +212,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "What's on your mind?" 
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={4}
-        className="input-field resize-none"
+        className="input-field resize-none w-full"
       />
     </div>
   )
