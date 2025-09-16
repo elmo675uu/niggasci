@@ -414,23 +414,39 @@ app.post('/api/posts/:id/:action', async (req, res) => {
       if (!post.likes) {
         post.likes = []
       }
-      // Add like (simple implementation - could be enhanced with user tracking)
-      if (!post.likes.includes('user')) {
-        post.likes.push('user')
+      // Generate a unique user ID for this session (could be enhanced with proper user auth)
+      const userId = req.ip + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+      // Add like with unique identifier
+      if (!post.likes.includes(userId)) {
+        post.likes.push(userId)
       }
     } else if (action === 'unlike') {
       // Initialize likes array if it doesn't exist
       if (!post.likes) {
         post.likes = []
       }
-      // Remove like
-      post.likes = post.likes.filter(like => like !== 'user')
+      // For unlike, we'll use a different approach - track by IP and timestamp
+      const userLikeId = req.ip + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+      // Remove the most recent like from this IP (simple approach)
+      const ipLikes = post.likes.filter(like => like.startsWith(req.ip))
+      if (ipLikes.length > 0) {
+        const latestLike = ipLikes[ipLikes.length - 1]
+        post.likes = post.likes.filter(like => like !== latestLike)
+      }
     }
     
     // Save posts
     await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
     
-    res.json({ success: true })
+    // Return the updated post data for live updates
+    res.json({ 
+      success: true, 
+      post: {
+        id: post.id,
+        likes: post.likes || [],
+        likeCount: (post.likes || []).length
+      }
+    })
   } catch (error) {
     console.error('Error toggling pin:', error)
     res.status(500).json({ error: 'Failed to toggle pin' })

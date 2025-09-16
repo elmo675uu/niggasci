@@ -9,6 +9,12 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
     author: post.author || 'Anonymous'
   })
 
+  // Helper function to check if current user has liked this post
+  const isLikedByUser = () => {
+    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]')
+    return likedPosts.includes(post.id)
+  }
+
   const formatDate = (timestamp) => {
     return new Date(timestamp).toLocaleString()
   }
@@ -63,13 +69,35 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
 
   const handleLikeToggle = async () => {
     try {
-      const isLiked = post.likes && post.likes.includes('user')
+      // Get user's liked posts from localStorage
+      const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]')
+      const isLiked = likedPosts.includes(post.id)
+      
       const endpoint = isLiked ? 'unlike' : 'like'
       const response = await fetch(`/api/posts/${post.id}/${endpoint}`, {
         method: 'POST'
       })
       
       if (response.ok) {
+        const result = await response.json()
+        
+        // Update localStorage
+        if (isLiked) {
+          // Remove from liked posts
+          const updatedLikes = likedPosts.filter(id => id !== post.id)
+          localStorage.setItem('likedPosts', JSON.stringify(updatedLikes))
+        } else {
+          // Add to liked posts
+          likedPosts.push(post.id)
+          localStorage.setItem('likedPosts', JSON.stringify(likedPosts))
+        }
+        
+        // Update the post data locally for immediate UI update
+        if (result.post) {
+          post.likes = result.post.likes
+        }
+        
+        // Trigger a refresh to get the latest data
         onRefresh()
       }
     } catch (error) {
@@ -189,13 +217,16 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
           <button
             onClick={handleLikeToggle}
             className={`p-2 rounded-lg transition-all duration-300 ${
-              post.likes && post.likes.includes('user')
+              isLikedByUser()
                 ? 'bg-red-600 text-white'
                 : 'bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-red-400'
             }`}
-            title={post.likes && post.likes.includes('user') ? 'Unlike post' : 'Like post'}
+            title={isLikedByUser() ? 'Unlike post' : 'Like post'}
           >
-            <Heart size={16} fill={post.likes && post.likes.includes('user') ? 'currentColor' : 'none'} />
+            <Heart 
+              size={16} 
+              fill={isLikedByUser() ? 'currentColor' : 'none'} 
+            />
           </button>
           {post.likes && post.likes.length > 0 && (
             <span className="text-sm text-gray-400">
