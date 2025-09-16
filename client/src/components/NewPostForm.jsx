@@ -12,6 +12,7 @@ const NewPostForm = ({ onAddPost }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadedImageUrl, setUploadedImageUrl] = useState('')
+  const [compressionInfo, setCompressionInfo] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -46,6 +47,7 @@ const NewPostForm = ({ onAddPost }) => {
         imageUrl: ''
       })
       setUploadedImageUrl('')
+      setCompressionInfo('')
     } catch (error) {
       console.error('Failed to submit post:', error)
       alert('Failed to submit post. Please try again. Error: ' + error.message)
@@ -59,6 +61,68 @@ const NewPostForm = ({ onAddPost }) => {
       ...prev,
       [field]: value
     }))
+  }
+
+  const compressImage = (file, maxSizeKB = 1000, quality = 0.8) => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = () => {
+        try {
+          // Calculate new dimensions to fit within maxSizeKB
+          let { width, height } = img
+          const maxDimension = 1200 // Max width or height
+          
+          // First, resize if too large
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height * maxDimension) / width
+              width = maxDimension
+            } else {
+              width = (width * maxDimension) / height
+              height = maxDimension
+            }
+          }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          // Draw image
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          // Try different quality levels until we get under maxSizeKB
+          const tryCompress = (currentQuality) => {
+            const dataUrl = canvas.toDataURL('image/jpeg', currentQuality)
+            const sizeKB = (dataUrl.length * 0.75) / 1024 // Approximate base64 to KB conversion
+            
+            console.log(`Quality: ${currentQuality}, Size: ${sizeKB.toFixed(1)}KB`)
+            
+            if (sizeKB <= maxSizeKB || currentQuality <= 0.1) {
+              resolve({
+                dataUrl,
+                sizeKB: sizeKB.toFixed(1),
+                quality: currentQuality
+              })
+            } else {
+              // Reduce quality and try again
+              tryCompress(currentQuality - 0.1)
+            }
+          }
+          
+          tryCompress(quality)
+        } catch (error) {
+          reject(error)
+        }
+      }
+      
+      img.onerror = (error) => {
+        reject(new Error('Failed to load image'))
+      }
+      
+      img.src = URL.createObjectURL(file)
+    })
   }
 
   const handleFileUpload = async (e) => {
@@ -77,50 +141,32 @@ const NewPostForm = ({ onAddPost }) => {
       return
     }
 
-    // Validate file size (3MB limit)
-    if (file.size > 3 * 1024 * 1024) {
+    // Validate file size (10MB limit for original file)
+    if (file.size > 10 * 1024 * 1024) {
       console.error('File too large:', file.size)
-      alert('File size must be less than 3MB')
+      alert('File size must be less than 10MB')
       return
     }
 
     setIsUploading(true)
-    console.log('Starting image processing...')
+    console.log('Starting image compression...')
     
     try {
-      // Use FileReader for simpler, more reliable base64 conversion
-      const reader = new FileReader()
+      const result = await compressImage(file, 1000, 0.8) // 1MB limit, start at 80% quality
       
-      reader.onload = (event) => {
-        try {
-          const base64Data = event.target.result
-          console.log('Original file size:', file.size, 'Base64 size:', base64Data.length)
-          
-          setUploadedImageUrl(base64Data)
-          setFormData(prev => ({
-            ...prev,
-            imageUrl: base64Data
-          }))
-          setIsUploading(false)
-          console.log('Image processing completed successfully')
-        } catch (error) {
-          console.error('Error during base64 processing:', error)
-          alert('Failed to process image: ' + error.message)
-          setIsUploading(false)
-        }
-      }
+      console.log(`Compression complete: ${result.sizeKB}KB at ${result.quality} quality`)
       
-      reader.onerror = (error) => {
-        console.error('FileReader error:', error)
-        alert('Failed to read file')
-        setIsUploading(false)
-      }
-      
-      console.log('Reading file as data URL...')
-      reader.readAsDataURL(file)
+      setUploadedImageUrl(result.dataUrl)
+      setCompressionInfo(`Compressed to ${result.sizeKB}KB (${(result.quality * 100).toFixed(0)}% quality)`)
+      setFormData(prev => ({
+        ...prev,
+        imageUrl: result.dataUrl
+      }))
+      setIsUploading(false)
+      console.log('Image processing completed successfully')
     } catch (error) {
-      console.error('Upload error:', error)
-      alert('Upload failed. Please try again. Error: ' + error.message)
+      console.error('Compression error:', error)
+      alert('Failed to compress image: ' + error.message)
       setIsUploading(false)
     }
   }
@@ -217,18 +263,26 @@ const NewPostForm = ({ onAddPost }) => {
               </span>
             </label>
             {uploadedImageUrl && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-green-400">✓ Uploaded</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUploadedImageUrl('')
-                    setFormData(prev => ({ ...prev, imageUrl: '' }))
-                  }}
-                  className="text-xs text-red-400 hover:text-red-300"
-                >
-                  Remove
-                </button>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-green-400">✓ Uploaded</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadedImageUrl('')
+                      setCompressionInfo('')
+                      setFormData(prev => ({ ...prev, imageUrl: '' }))
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
+                {compressionInfo && (
+                  <div className="text-xs text-gray-400">
+                    {compressionInfo}
+                  </div>
+                )}
               </div>
             )}
           </div>
