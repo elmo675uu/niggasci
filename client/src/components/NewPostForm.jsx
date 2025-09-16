@@ -65,7 +65,7 @@ const NewPostForm = ({ onAddPost }) => {
 
   const compressImage = (file, maxSizeKB = 1000) => {
     return new Promise((resolve, reject) => {
-      // Use FileReader for simple base64 conversion without canvas
+      // Use FileReader for simple base64 conversion - NO CANVAS
       const reader = new FileReader()
       
       reader.onload = (event) => {
@@ -75,101 +75,13 @@ const NewPostForm = ({ onAddPost }) => {
           
           console.log(`Original file size: ${(file.size / 1024).toFixed(1)}KB, Base64 size: ${sizeKB.toFixed(1)}KB`)
           
-          // If already under limit, use as is
-          if (sizeKB <= maxSizeKB) {
-            resolve({
-              dataUrl: base64Data,
-              sizeKB: sizeKB.toFixed(1),
-              quality: 1.0
-            })
-            return
-          }
-          
-          // If too large, try to reduce file size by creating a smaller version
-          // Create a new file with reduced quality using canvas (but with better error handling)
-          const img = new Image()
-          
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas')
-              const ctx = canvas.getContext('2d')
-              
-              if (!ctx) {
-                throw new Error('Canvas context not available')
-              }
-              
-              // Calculate new dimensions
-              let { width, height } = img
-              const maxDimension = 800 // Smaller max dimension
-              
-              if (width > maxDimension || height > maxDimension) {
-                if (width > height) {
-                  height = (height * maxDimension) / width
-                  width = maxDimension
-                } else {
-                  width = (width * maxDimension) / height
-                  height = maxDimension
-                }
-              }
-              
-              canvas.width = width
-              canvas.height = height
-              
-              // Draw image
-              ctx.drawImage(img, 0, 0, width, height)
-              
-              // Try different quality levels
-              const tryCompress = (currentQuality) => {
-                try {
-                  const dataUrl = canvas.toDataURL('image/jpeg', currentQuality)
-                  const compressedSizeKB = (dataUrl.length * 0.75) / 1024
-                  
-                  console.log(`Quality: ${currentQuality}, Size: ${compressedSizeKB.toFixed(1)}KB`)
-                  
-                  if (compressedSizeKB <= maxSizeKB || currentQuality <= 0.1) {
-                    resolve({
-                      dataUrl,
-                      sizeKB: compressedSizeKB.toFixed(1),
-                      quality: currentQuality
-                    })
-                  } else {
-                    // Reduce quality and try again
-                    tryCompress(currentQuality - 0.1)
-                  }
-                } catch (error) {
-                  console.error('Canvas compression error:', error)
-                  // Fallback to original base64 if canvas fails
-                  resolve({
-                    dataUrl: base64Data,
-                    sizeKB: sizeKB.toFixed(1),
-                    quality: 1.0
-                  })
-                }
-              }
-              
-              tryCompress(0.7) // Start with 70% quality
-              
-            } catch (error) {
-              console.error('Image processing error:', error)
-              // Fallback to original base64
-              resolve({
-                dataUrl: base64Data,
-                sizeKB: sizeKB.toFixed(1),
-                quality: 1.0
-              })
-            }
-          }
-          
-          img.onerror = () => {
-            // Fallback to original base64 if image loading fails
-            resolve({
-              dataUrl: base64Data,
-              sizeKB: sizeKB.toFixed(1),
-              quality: 1.0
-            })
-          }
-          
-          img.src = base64Data
+          // Always use the base64 data as-is, no compression
+          // If it's too large, we'll let the backend handle it or warn the user
+          resolve({
+            dataUrl: base64Data,
+            sizeKB: sizeKB.toFixed(1),
+            quality: 1.0
+          })
           
         } catch (error) {
           reject(error)
@@ -211,12 +123,19 @@ const NewPostForm = ({ onAddPost }) => {
     console.log('Starting image compression...')
     
     try {
-      const result = await compressImage(file, 1000, 0.8) // 1MB limit, start at 80% quality
+      const result = await compressImage(file, 1000) // 1MB limit
       
-      console.log(`Compression complete: ${result.sizeKB}KB at ${result.quality} quality`)
+      console.log(`Image processed: ${result.sizeKB}KB`)
+      
+      // Warn if file is large but still proceed
+      if (parseFloat(result.sizeKB) > 1000) {
+        console.warn(`Large image detected: ${result.sizeKB}KB (may take longer to upload)`)
+        setCompressionInfo(`Large image: ${result.sizeKB}KB (may be slow to upload)`)
+      } else {
+        setCompressionInfo(`Image: ${result.sizeKB}KB`)
+      }
       
       setUploadedImageUrl(result.dataUrl)
-      setCompressionInfo(`Compressed to ${result.sizeKB}KB (${(result.quality * 100).toFixed(0)}% quality)`)
       setFormData(prev => ({
         ...prev,
         imageUrl: result.dataUrl
@@ -224,8 +143,8 @@ const NewPostForm = ({ onAddPost }) => {
       setIsUploading(false)
       console.log('Image processing completed successfully')
     } catch (error) {
-      console.error('Compression error:', error)
-      alert('Failed to compress image: ' + error.message)
+      console.error('Image processing error:', error)
+      alert('Failed to process image: ' + error.message)
       setIsUploading(false)
     }
   }
