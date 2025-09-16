@@ -230,6 +230,40 @@ app.get('/api/boards', async (req, res) => {
   }
 })
 
+// Reorder boards (admin only)
+app.put('/api/boards/reorder', async (req, res) => {
+  try {
+    const { boardIds } = req.body
+    
+    if (!Array.isArray(boardIds)) {
+      return res.status(400).json({ error: 'boardIds must be an array' })
+    }
+    
+    const data = await fs.readFile(BOARDS_FILE, 'utf8')
+    const boards = JSON.parse(data)
+    
+    // Create a map of existing boards
+    const boardMap = new Map(boards.boards.map(board => [board.id, board]))
+    
+    // Reorder boards according to the provided order
+    const reorderedBoards = boardIds
+      .map(id => boardMap.get(id))
+      .filter(board => board !== undefined) // Remove any invalid IDs
+    
+    // Add any boards that weren't in the reorder list (shouldn't happen, but safety)
+    const existingIds = new Set(boardIds)
+    const remainingBoards = boards.boards.filter(board => !existingIds.has(board.id))
+    
+    boards.boards = [...reorderedBoards, ...remainingBoards]
+    await fs.writeFile(BOARDS_FILE, JSON.stringify(boards, null, 2))
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error reordering boards:', error)
+    res.status(500).json({ error: 'Failed to reorder boards' })
+  }
+})
+
 // Update board (admin only)
 app.put('/api/boards/:boardId', async (req, res) => {
   try {
@@ -300,40 +334,6 @@ app.delete('/api/boards/:boardId', async (req, res) => {
   } catch (error) {
     console.error('Error deleting board:', error)
     res.status(500).json({ error: 'Failed to delete board' })
-  }
-})
-
-// Reorder boards (admin only)
-app.put('/api/boards/reorder', async (req, res) => {
-  try {
-    const { boardIds } = req.body
-    
-    if (!Array.isArray(boardIds)) {
-      return res.status(400).json({ error: 'boardIds must be an array' })
-    }
-    
-    const data = await fs.readFile(BOARDS_FILE, 'utf8')
-    const boards = JSON.parse(data)
-    
-    // Create a map of existing boards
-    const boardMap = new Map(boards.boards.map(board => [board.id, board]))
-    
-    // Reorder boards according to the provided order
-    const reorderedBoards = boardIds
-      .map(id => boardMap.get(id))
-      .filter(board => board !== undefined) // Remove any invalid IDs
-    
-    // Add any boards that weren't in the reorder list (shouldn't happen, but safety)
-    const existingIds = new Set(boardIds)
-    const remainingBoards = boards.boards.filter(board => !existingIds.has(board.id))
-    
-    boards.boards = [...reorderedBoards, ...remainingBoards]
-    await fs.writeFile(BOARDS_FILE, JSON.stringify(boards, null, 2))
-    
-    res.json({ success: true })
-  } catch (error) {
-    console.error('Error reordering boards:', error)
-    res.status(500).json({ error: 'Failed to reorder boards' })
   }
 })
 
