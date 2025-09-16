@@ -37,26 +37,7 @@ function App() {
       
       // No loading state needed with aggressive optimization
       
-      // Set a fallback timeout to show posts even if API is slow
-      setTimeout(() => {
-        if (posts.pinned.length === 0 && posts.user.length === 0) {
-          console.log('Setting fallback posts due to slow loading')
-          setPosts({
-            pinned: [{
-              id: 'fallback-1',
-              title: 'Welcome to NIGGA SCIENCE',
-              content: 'Posts are loading... Please wait a moment.',
-              author: 'System',
-              timestamp: Date.now(),
-              pinned: true,
-              admin: false,
-              likes: [],
-              imageUrl: ''
-            }],
-            user: []
-          })
-        }
-      }, 3000) // 3 second fallback
+      // No fallback needed - API is now fast
       
       // Load posts with moderate optimization - only remove very large base64 images
       try {
