@@ -61,8 +61,40 @@ const postLimiter = rateLimit({
 })
 
 app.use(limiter)
+
+// Body parsers (be tolerant of proxies changing content-type)
 app.use(express.json({ limit: '10mb' }))
+app.use(express.text({ type: 'text/plain', limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Fallback: if body came as plain text "key:value" lines, coerce to object
+app.use((req, _res, next) => {
+  if (req.body && typeof req.body === 'string') {
+    const text = req.body.trim()
+    // Try JSON first
+    try {
+      const parsed = JSON.parse(text)
+      req.body = parsed
+      return next()
+    } catch (_) {}
+
+    // Parse simple key:value or key=value lines
+    const obj = {}
+    const lines = text.split(/\r?\n|&/)
+    for (const line of lines) {
+      const m = line.split(/[:=]/)
+      if (m.length >= 2) {
+        const key = m[0].trim()
+        const val = m.slice(1).join(':').trim()
+        if (key) obj[key] = val
+      }
+    }
+    if (Object.keys(obj).length > 0) {
+      req.body = obj
+    }
+  }
+  next()
+})
 
 // File paths
 const POSTS_FILE = path.join(__dirname, 'posts.json')
@@ -221,7 +253,7 @@ app.get('/api/posts', async (req, res) => {
 // Create new post
 app.post('/api/posts', postLimiter, async (req, res) => {
   try {
-    const { title, content, author, imageUrl, pinned = false, admin = false } = req.body
+    const { title, content, author, imageUrl, pinned = false, admin = false } = req.body || {}
     
     // Validate input
     const errors = validatePost({ title, content, author, imageUrl })
