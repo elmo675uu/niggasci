@@ -42,17 +42,26 @@ function App() {
 
   const addPost = async (postData) => {
     try {
+      console.log('Creating post with data:', postData)
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData)
       })
       
+      console.log('Post creation response:', response.status, response.statusText)
+      
       if (response.ok) {
+        console.log('Post created successfully, refreshing data...')
         await loadData()
+      } else {
+        const errorData = await response.text()
+        console.error('Post creation failed:', errorData)
+        alert('Failed to create post: ' + errorData)
       }
     } catch (error) {
       console.error('Failed to add post:', error)
+      alert('Failed to create post: ' + error.message)
     }
   }
 

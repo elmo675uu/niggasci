@@ -71,22 +71,51 @@ const NewPostForm = ({ onAddPost }) => {
     setIsUploading(true)
     
     try {
-      // Convert file to base64 for direct embedding
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const base64Data = event.target.result
-        setUploadedImageUrl(base64Data)
+      // Compress image before converting to base64
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = () => {
+        // Resize image to max 800px width/height to reduce base64 size
+        const maxSize = 800
+        let { width, height } = img
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width
+            width = maxSize
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height
+            height = maxSize
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        
+        console.log('Original file size:', file.size, 'Compressed base64 size:', compressedDataUrl.length)
+        
+        setUploadedImageUrl(compressedDataUrl)
         setFormData(prev => ({
           ...prev,
-          imageUrl: base64Data
+          imageUrl: compressedDataUrl
         }))
         setIsUploading(false)
       }
-      reader.onerror = () => {
-        alert('Failed to read file')
+      
+      img.onerror = () => {
+        alert('Failed to process image')
         setIsUploading(false)
       }
-      reader.readAsDataURL(file)
+      
+      img.src = URL.createObjectURL(file)
     } catch (error) {
       console.error('Upload error:', error)
       alert('Upload failed. Please try again.')
