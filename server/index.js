@@ -9,6 +9,7 @@ import dotenv from 'dotenv'
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import multer from 'multer'
 
 // Load environment variables
 dotenv.config()
@@ -18,6 +19,39 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 5000
+
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads')
+    // Create uploads directory if it doesn't exist
+    fs.mkdir(uploadDir, { recursive: true }).then(() => {
+      cb(null, uploadDir)
+    }).catch(err => {
+      cb(err, null)
+    })
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename with original extension
+    const uniqueName = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`
+    cb(null, uniqueName)
+  }
+})
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only image files are allowed'), false)
+    }
+  }
+})
 
 // Security middleware
 app.use(helmet({
@@ -66,6 +100,9 @@ app.use(limiter)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.text({ type: 'text/plain', limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Fallback: if body came as plain text "key:value" lines, coerce to object
 app.use((req, _res, next) => {
@@ -290,6 +327,26 @@ app.post('/api/posts', postLimiter, async (req, res) => {
   } catch (error) {
     console.error('Error creating post:', error)
     res.status(500).json({ error: 'Failed to create post' })
+  }
+})
+
+// File upload endpoint
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' })
+    }
+    
+    // Return the file URL
+    const fileUrl = `/uploads/${req.file.filename}`
+    res.json({ 
+      success: true, 
+      fileUrl: fileUrl,
+      filename: req.file.filename
+    })
+  } catch (error) {
+    console.error('File upload error:', error)
+    res.status(500).json({ error: 'File upload failed' })
   }
 })
 

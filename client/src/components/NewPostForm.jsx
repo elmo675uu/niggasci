@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Send, User, Image, Type } from 'lucide-react'
+import { Send, User, Image, Type, Upload } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 
 const NewPostForm = ({ onAddPost }) => {
@@ -10,6 +10,8 @@ const NewPostForm = ({ onAddPost }) => {
     imageUrl: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -34,6 +36,7 @@ const NewPostForm = ({ onAddPost }) => {
         author: '',
         imageUrl: ''
       })
+      setUploadedImageUrl('')
     } catch (error) {
       console.error('Failed to submit post:', error)
       alert('Failed to submit post. Please try again.')
@@ -47,6 +50,52 @@ const NewPostForm = ({ onAddPost }) => {
       ...prev,
       [field]: value
     }))
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file')
+      return
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB')
+      return
+    }
+
+    setIsUploading(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setUploadedImageUrl(result.fileUrl)
+        setFormData(prev => ({
+          ...prev,
+          imageUrl: result.fileUrl
+        }))
+      } else {
+        const error = await response.json()
+        alert(`Upload failed: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Upload failed. Please try again.')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (
@@ -112,6 +161,59 @@ const NewPostForm = ({ onAddPost }) => {
             placeholder="Image URL (optional)"
             className="input-field w-full"
           />
+        </div>
+
+        {/* File Upload Field */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-300 flex items-center">
+            <Upload size={16} className="mr-2" />
+            Upload Image
+          </label>
+          <div className="flex items-center space-x-3">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+              className="hidden"
+              id="file-upload"
+            />
+            <label
+              htmlFor="file-upload"
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border-2 border-dashed border-dark-600 hover:border-primary-500 cursor-pointer transition-colors ${
+                isUploading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <Upload size={16} className="text-gray-400" />
+              <span className="text-sm text-gray-400">
+                {isUploading ? 'Uploading...' : 'Choose Image File'}
+              </span>
+            </label>
+            {uploadedImageUrl && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-green-400">✓ Uploaded</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadedImageUrl('')
+                    setFormData(prev => ({ ...prev, imageUrl: '' }))
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+          </div>
+          {uploadedImageUrl && (
+            <div className="mt-2">
+              <img
+                src={uploadedImageUrl}
+                alt="Uploaded preview"
+                className="max-w-xs max-h-32 object-cover rounded-lg border border-dark-600"
+              />
+            </div>
+          )}
         </div>
 
         {/* Submit Button */}
