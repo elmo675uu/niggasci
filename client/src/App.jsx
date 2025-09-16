@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Header from './components/Header'
 import BoardList from './components/BoardList'
 import ThreadList from './components/ThreadList'
+import ThreadView from './components/ThreadView'
 import AdminPanel from './components/AdminPanel'
 import AudioPlayer from './components/AudioPlayer'
 import SnowflakeAnimation from './components/SnowflakeAnimation'
@@ -134,6 +135,14 @@ function App() {
             board={currentBoard}
             onBack={handleBackToBoards}
             isAdminAuthenticated={isAdminAuthenticated}
+            onThreadSelect={handleThreadSelect}
+          />
+        )}
+        
+        {currentView === 'thread' && currentThread && (
+          <ThreadView 
+            threadId={currentThread.id}
+            onBack={handleBackToThreads}
           />
         )}
       </main>

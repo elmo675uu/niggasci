@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { ArrowLeft, Plus, Heart, MessageSquare, User, Clock } from 'lucide-react'
 import NewThreadForm from './NewThreadForm'
 
-const ThreadList = ({ board, onBack, isAdminAuthenticated }) => {
+const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => {
   const [threads, setThreads] = useState([])
   const [showNewThread, setShowNewThread] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -177,7 +177,7 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated }) => {
               <div
                 key={thread.id}
                 className="card hover:bg-dark-700/50 cursor-pointer transition-all duration-300"
-                onClick={() => window.location.href = `#/thread/${thread.id}`}
+                onClick={() => onThreadSelect(thread)}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
