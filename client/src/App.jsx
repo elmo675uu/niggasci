@@ -48,48 +48,63 @@ function App() {
         setIsLoading(false)
       }, 500)
       
-      // Use Promise.allSettled with timeout for faster loading
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 2000) // 2 second timeout
-      )
+      // Try to load posts with multiple attempts
+      let postsLoaded = false
+      let attempts = 0
+      const maxAttempts = 3
       
-      const [postsResult, configResult] = await Promise.allSettled([
-        Promise.race([
-          fetch('/api/posts', { 
+      while (!postsLoaded && attempts < maxAttempts) {
+        attempts++
+        console.log(`Attempt ${attempts} to load posts...`)
+        
+        try {
+          const postsResponse = await fetch('/api/posts', { 
             cache: 'no-cache',
             headers: { 'Accept': 'application/json' }
-          }),
-          timeoutPromise
-        ]),
-        Promise.race([
-          fetch('/api/config', { 
-            cache: 'no-cache',
-            headers: { 'Accept': 'application/json' }
-          }),
-          timeoutPromise
-        ])
-      ])
-      
-      // Handle posts
-      if (postsResult.status === 'fulfilled' && postsResult.value.ok) {
-        const postsData = await postsResult.value.json()
-        console.log('Loaded posts data:', postsData)
-        console.log('Pinned posts count:', postsData.pinned?.length || 0)
-        console.log('User posts count:', postsData.user?.length || 0)
-        setPosts(postsData)
-      } else {
-        console.error('Failed to load posts:', postsResult.reason || postsResult.value?.status)
-        console.log('Using fallback posts data')
+          })
+          
+          if (postsResponse.ok) {
+            const postsData = await postsResponse.json()
+            console.log('Loaded posts data:', postsData)
+            console.log('Pinned posts count:', postsData.pinned?.length || 0)
+            console.log('User posts count:', postsData.user?.length || 0)
+            setPosts(postsData)
+            postsLoaded = true
+          } else {
+            console.error(`Posts API failed with status: ${postsResponse.status}`)
+          }
+        } catch (error) {
+          console.error(`Posts API attempt ${attempts} failed:`, error)
+        }
+        
+        if (!postsLoaded && attempts < maxAttempts) {
+          console.log('Retrying in 1 second...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
       }
       
-      // Handle config
-      if (configResult.status === 'fulfilled' && configResult.value.ok) {
-        const configData = await configResult.value.json()
-        console.log('Loaded config data:', configData)
-        setConfig(configData)
-      } else {
-        console.error('Failed to load config:', configResult.reason || configResult.value?.status)
+      if (!postsLoaded) {
+        console.error('Failed to load posts after all attempts')
       }
+      
+      // Load config
+      try {
+        const configResponse = await fetch('/api/config', { 
+          cache: 'no-cache',
+          headers: { 'Accept': 'application/json' }
+        })
+        
+        if (configResponse.ok) {
+          const configData = await configResponse.json()
+          console.log('Loaded config data:', configData)
+          setConfig(configData)
+        } else {
+          console.error(`Config API failed with status: ${configResponse.status}`)
+        }
+      } catch (error) {
+        console.error('Failed to load config:', error)
+      }
+      
     } catch (error) {
       console.error('Failed to load data:', error)
     }
