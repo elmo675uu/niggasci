@@ -277,7 +277,7 @@ const Post = ({ post, isPinned, onRefresh }) => {
               <img 
                 src={post.imageUrl} 
                 alt={post.title || 'Post image'}
-                className="w-full min-w-[500px] max-w-[900px] h-auto rounded-lg border border-dark-600"
+                className="w-full min-w-[300px] max-w-[500px] h-auto rounded-lg border border-dark-600"
                 onError={(e) => {
                   e.target.style.display = 'none'
                 }}
