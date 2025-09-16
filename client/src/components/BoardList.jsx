@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, MessageSquare, Users, Clock, Edit, Trash2, Info, X } from 'lucide-react'
+import { Plus, MessageSquare, Users, Clock, Edit, Trash2, Info, X, GripVertical } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 
 const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
@@ -14,6 +14,8 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [showCreateInfoPost, setShowCreateInfoPost] = useState(false)
   const [newInfoPost, setNewInfoPost] = useState({ title: '', content: '', imageUrl: '' })
   const [isCreatingInfoPost, setIsCreatingInfoPost] = useState(false)
+  const [draggedBoard, setDraggedBoard] = useState(null)
+  const [isReordering, setIsReordering] = useState(false)
 
   useEffect(() => {
     loadBoards()
@@ -185,6 +187,72 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
     }
   }
 
+  const handleDragStart = (e, board) => {
+    if (!isAdminAuthenticated) return
+    setDraggedBoard(board)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/html', e.target.outerHTML)
+    e.target.style.opacity = '0.5'
+  }
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1'
+    setDraggedBoard(null)
+  }
+
+  const handleDragOver = (e) => {
+    if (!isAdminAuthenticated) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = async (e, targetBoard) => {
+    if (!isAdminAuthenticated || !draggedBoard) return
+    
+    e.preventDefault()
+    
+    if (draggedBoard.id === targetBoard.id) return
+    
+    setIsReordering(true)
+    
+    try {
+      // Create new board order
+      const newBoards = [...boards]
+      const draggedIndex = newBoards.findIndex(b => b.id === draggedBoard.id)
+      const targetIndex = newBoards.findIndex(b => b.id === targetBoard.id)
+      
+      // Remove dragged board from its current position
+      const [draggedItem] = newBoards.splice(draggedIndex, 1)
+      
+      // Insert at new position
+      newBoards.splice(targetIndex, 0, draggedItem)
+      
+      // Update local state immediately for better UX
+      setBoards(newBoards)
+      
+      // Send to server
+      const boardIds = newBoards.map(b => b.id)
+      const response = await fetch('/api/boards/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ boardIds })
+      })
+      
+      if (!response.ok) {
+        // Revert on error
+        loadBoards()
+        alert('Failed to reorder boards')
+      }
+    } catch (error) {
+      console.error('Failed to reorder boards:', error)
+      // Revert on error
+      loadBoards()
+      alert('Failed to reorder boards')
+    } finally {
+      setIsReordering(false)
+    }
+  }
+
   const renderHTMLContent = (content) => {
     if (!content) return ''
     
@@ -314,13 +382,18 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
           )}
           
           {isAdminAuthenticated && (
-            <button
-              onClick={() => setShowCreateBoard(true)}
-              className="btn-primary flex items-center space-x-2 mx-auto"
-            >
-              <Plus size={20} />
-              <span>Create New Board</span>
-            </button>
+            <div className="flex flex-col items-center space-y-4">
+              <button
+                onClick={() => setShowCreateBoard(true)}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <Plus size={20} />
+                <span>Create New Board</span>
+              </button>
+              <p className="text-sm text-gray-400 text-center">
+                💡 <strong>Admin Tip:</strong> Drag and drop boards to reorder them
+              </p>
+            </div>
           )}
         </div>
 
@@ -379,16 +452,39 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
         )}
 
         {/* Boards Grid */}
+        {isReordering && (
+          <div className="text-center py-4">
+            <div className="inline-flex items-center space-x-2 text-primary-400">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-400"></div>
+              <span>Reordering boards...</span>
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {boards.map((board) => (
             <div
               key={board.id}
-              className="card hover:bg-dark-700/50 transition-all duration-300 group relative h-80 flex flex-col"
+              className={`card hover:bg-dark-700/50 transition-all duration-300 group relative h-80 flex flex-col ${
+                isAdminAuthenticated ? 'cursor-move' : ''
+              } ${draggedBoard?.id === board.id ? 'opacity-50' : ''}`}
+              draggable={isAdminAuthenticated}
+              onDragStart={(e) => handleDragStart(e, board)}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, board)}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-heading font-bold text-primary-400 group-hover:text-primary-300">
-                  /{board.id}/
-                </h3>
+                <div className="flex items-center space-x-2">
+                  {isAdminAuthenticated && (
+                    <GripVertical 
+                      size={16} 
+                      className="text-gray-500 cursor-move hover:text-gray-400 transition-colors" 
+                    />
+                  )}
+                  <h3 className="text-xl font-heading font-bold text-primary-400 group-hover:text-primary-300">
+                    /{board.id}/
+                  </h3>
+                </div>
                 <div className="flex items-center space-x-2">
                   <MessageSquare size={20} className="text-gray-400 group-hover:text-primary-400" />
                   {isAdminAuthenticated && (
