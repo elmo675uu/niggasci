@@ -10,19 +10,15 @@ function App() {
   const [config, setConfig] = useState({})
   const [showAdmin, setShowAdmin] = useState(false)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Load initial data immediately
   useEffect(() => {
     loadData()
     
-    // Set a maximum loading time to prevent infinite loading
-    const maxLoadingTime = setTimeout(() => {
-      console.log('Maximum loading time reached, forcing completion')
-      setIsLoading(false)
-    }, 2000) // 2 second maximum
+    // No maximum loading time needed with aggressive optimization
     
-    return () => clearTimeout(maxLoadingTime)
+    // No cleanup needed
   }, [])
 
   const loadData = async () => {
@@ -39,10 +35,7 @@ function App() {
         audioVolume: 0.3
       })
       
-      // Always clear loading state after a short delay to ensure UI shows
-      setTimeout(() => {
-        setIsLoading(false)
-      }, 500)
+      // No loading state needed with aggressive optimization
       
       // Set a fallback timeout to show posts even if API is slow
       setTimeout(() => {
@@ -198,11 +191,7 @@ function App() {
           onRefresh={loadData}
           isAdminAuthenticated={isAdminAuthenticated}
         />
-        {isLoading && (
-          <div className="fixed top-4 right-4 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm">
-            Loading posts...
-          </div>
-        )}
+        {/* No loading indicator needed with aggressive optimization */}
       </main>
       
       <AudioPlayer config={config} />
