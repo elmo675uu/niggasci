@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, MessageSquare, Users, Clock } from 'lucide-react'
+import { Plus, MessageSquare, Users, Clock, Edit, Trash2 } from 'lucide-react'
 
 const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [boards, setBoards] = useState([])
   const [showCreateBoard, setShowCreateBoard] = useState(false)
   const [newBoard, setNewBoard] = useState({ name: '', description: '' })
   const [isCreating, setIsCreating] = useState(false)
+  const [editingBoard, setEditingBoard] = useState(null)
+  const [editBoardData, setEditBoardData] = useState({ name: '', description: '' })
 
   useEffect(() => {
     loadBoards()
@@ -48,6 +50,55 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       alert('Failed to create board')
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const handleEditBoard = (board) => {
+    setEditBoardData({
+      name: board.name,
+      description: board.description
+    })
+    setEditingBoard(board.id)
+  }
+
+  const handleSaveBoardEdit = async () => {
+    try {
+      const response = await fetch(`/api/boards/${editingBoard}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editBoardData)
+      })
+
+      if (response.ok) {
+        setEditingBoard(null)
+        loadBoards()
+      } else {
+        const error = await response.json()
+        alert('Failed to update board: ' + (error.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Failed to update board:', error)
+      alert('Failed to update board')
+    }
+  }
+
+  const handleDeleteBoard = async (boardId) => {
+    if (!confirm('Are you sure you want to delete this board? This will also delete all threads and replies in this board.')) return
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        loadBoards()
+      } else {
+        const error = await response.json()
+        alert('Failed to delete board: ' + (error.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Failed to delete board:', error)
+      alert('Failed to delete board')
     }
   }
 
@@ -167,35 +218,111 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
           {boards.map((board) => (
             <div
               key={board.id}
-              onClick={() => onBoardSelect(board)}
-              className="card hover:bg-dark-700/50 cursor-pointer transition-all duration-300 group"
+              className="card hover:bg-dark-700/50 transition-all duration-300 group relative"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-heading font-bold text-primary-400 group-hover:text-primary-300">
                   /{board.id}/
                 </h3>
-                <MessageSquare size={20} className="text-gray-400 group-hover:text-primary-400" />
-              </div>
-              
-              <h4 className="text-lg font-semibold text-white mb-2">
-                {board.name}
-              </h4>
-              
-              <p className="text-gray-400 text-sm mb-4">
-                {board.description}
-              </p>
-              
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <Clock size={14} />
-                  <span>Created {new Date(board.created).toLocaleDateString()}</span>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare size={20} className="text-gray-400 group-hover:text-primary-400" />
+                  {isAdminAuthenticated && (
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditBoard(board)
+                        }}
+                        className="p-1 rounded bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-primary-400 transition-all duration-300"
+                        title="Edit board"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteBoard(board.id)
+                        }}
+                        className="p-1 rounded bg-dark-700 hover:bg-red-600 text-gray-400 hover:text-white transition-all duration-300"
+                        title="Delete board"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {board.admin && (
-                  <span className="bg-primary-600 text-white px-2 py-1 rounded text-xs">
-                    Admin
-                  </span>
-                )}
               </div>
+              
+              {editingBoard === board.id ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Board Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editBoardData.name}
+                      onChange={(e) => setEditBoardData({...editBoardData, name: e.target.value})}
+                      className="input-field w-full text-sm"
+                      placeholder="Board name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={editBoardData.description}
+                      onChange={(e) => setEditBoardData({...editBoardData, description: e.target.value})}
+                      className="input-field w-full text-sm h-16 resize-none"
+                      placeholder="Board description"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleSaveBoardEdit}
+                      className="btn-primary text-sm px-3 py-1"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingBoard(null)}
+                      className="btn-secondary text-sm px-3 py-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    {board.name}
+                  </h4>
+                  
+                  <p className="text-gray-400 text-sm mb-4">
+                    {board.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center space-x-1">
+                      <Clock size={14} />
+                      <span>Created {new Date(board.created).toLocaleDateString()}</span>
+                    </div>
+                    {board.admin && (
+                      <span className="bg-primary-600 text-white px-2 py-1 rounded text-xs">
+                        Admin
+                      </span>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => onBoardSelect(board)}
+                    className="w-full mt-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                  >
+                    View Board
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>

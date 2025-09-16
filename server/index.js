@@ -202,6 +202,79 @@ app.get('/api/boards', async (req, res) => {
   }
 })
 
+// Update board (admin only)
+app.put('/api/boards/:boardId', async (req, res) => {
+  try {
+    const { boardId } = req.params
+    const { name, description } = req.body
+    
+    if (!name || !description) {
+      return res.status(400).json({ error: 'Name and description are required' })
+    }
+    
+    const data = await fs.readFile(BOARDS_FILE, 'utf8')
+    const boards = JSON.parse(data)
+    
+    const boardIndex = boards.boards.findIndex(b => b.id === boardId)
+    if (boardIndex === -1) {
+      return res.status(404).json({ error: 'Board not found' })
+    }
+    
+    boards.boards[boardIndex] = {
+      ...boards.boards[boardIndex],
+      name: sanitizeInput(name),
+      description: sanitizeInput(description)
+    }
+    
+    await fs.writeFile(BOARDS_FILE, JSON.stringify(boards, null, 2))
+    res.json({ success: true, board: boards.boards[boardIndex] })
+  } catch (error) {
+    console.error('Error updating board:', error)
+    res.status(500).json({ error: 'Failed to update board' })
+  }
+})
+
+// Delete board (admin only)
+app.delete('/api/boards/:boardId', async (req, res) => {
+  try {
+    const { boardId } = req.params
+    
+    const data = await fs.readFile(BOARDS_FILE, 'utf8')
+    const boards = JSON.parse(data)
+    
+    const boardIndex = boards.boards.findIndex(b => b.id === boardId)
+    if (boardIndex === -1) {
+      return res.status(404).json({ error: 'Board not found' })
+    }
+    
+    boards.boards.splice(boardIndex, 1)
+    await fs.writeFile(BOARDS_FILE, JSON.stringify(boards, null, 2))
+    
+    // Also remove all threads and replies for this board
+    const postsData = await fs.readFile(POSTS_FILE, 'utf8')
+    const posts = JSON.parse(postsData)
+    
+    if (posts.threads[boardId]) {
+      // Remove all replies for threads in this board
+      const threadIds = posts.threads[boardId].map(t => t.id)
+      threadIds.forEach(threadId => {
+        if (posts.replies[threadId]) {
+          delete posts.replies[threadId]
+        }
+      })
+      
+      // Remove all threads for this board
+      delete posts.threads[boardId]
+      await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
+    }
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting board:', error)
+    res.status(500).json({ error: 'Failed to delete board' })
+  }
+})
+
 // Create new board (admin only)
 app.post('/api/boards', async (req, res) => {
   try {
@@ -372,6 +445,169 @@ app.post('/api/threads/:threadId/replies', async (req, res) => {
   } catch (error) {
     console.error('Error creating reply:', error)
     res.status(500).json({ error: 'Failed to create reply' })
+  }
+})
+
+// Update thread
+app.put('/api/threads/:threadId', async (req, res) => {
+  try {
+    const { threadId } = req.params
+    const { title, content, author, imageUrl } = req.body
+    
+    const errors = validatePost({ title, content, author, imageUrl })
+    if (errors.length > 0) {
+      return res.status(400).json({ errors })
+    }
+    
+    const data = await fs.readFile(POSTS_FILE, 'utf8')
+    const posts = JSON.parse(data)
+    
+    // Find and update thread
+    let threadFound = false
+    for (const boardId in posts.threads) {
+      const threadIndex = posts.threads[boardId].findIndex(t => t.id === threadId)
+      if (threadIndex !== -1) {
+        posts.threads[boardId][threadIndex] = {
+          ...posts.threads[boardId][threadIndex],
+          title: sanitizeInput(title),
+          content: sanitizeInput(content),
+          author: sanitizeInput(author) || 'Anonymous',
+          imageUrl: imageUrl ? sanitizeInput(imageUrl) : '',
+          updatedAt: Date.now()
+        }
+        threadFound = true
+        break
+      }
+    }
+    
+    if (!threadFound) {
+      return res.status(404).json({ error: 'Thread not found' })
+    }
+    
+    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error updating thread:', error)
+    res.status(500).json({ error: 'Failed to update thread' })
+  }
+})
+
+// Delete thread
+app.delete('/api/threads/:threadId', async (req, res) => {
+  try {
+    const { threadId } = req.params
+    
+    const data = await fs.readFile(POSTS_FILE, 'utf8')
+    const posts = JSON.parse(data)
+    
+    // Find and remove thread
+    let threadFound = false
+    for (const boardId in posts.threads) {
+      const threadIndex = posts.threads[boardId].findIndex(t => t.id === threadId)
+      if (threadIndex !== -1) {
+        posts.threads[boardId].splice(threadIndex, 1)
+        threadFound = true
+        break
+      }
+    }
+    
+    // Remove all replies for this thread
+    if (posts.replies[threadId]) {
+      delete posts.replies[threadId]
+    }
+    
+    if (!threadFound) {
+      return res.status(404).json({ error: 'Thread not found' })
+    }
+    
+    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting thread:', error)
+    res.status(500).json({ error: 'Failed to delete thread' })
+  }
+})
+
+// Update reply
+app.put('/api/replies/:replyId', async (req, res) => {
+  try {
+    const { replyId } = req.params
+    const { content, author, imageUrl } = req.body
+    
+    const errors = validatePost({ content, author, imageUrl })
+    if (errors.length > 0) {
+      return res.status(400).json({ errors })
+    }
+    
+    const data = await fs.readFile(POSTS_FILE, 'utf8')
+    const posts = JSON.parse(data)
+    
+    // Find and update reply
+    let replyFound = false
+    for (const threadId in posts.replies) {
+      const replyIndex = posts.replies[threadId].findIndex(r => r.id === replyId)
+      if (replyIndex !== -1) {
+        posts.replies[threadId][replyIndex] = {
+          ...posts.replies[threadId][replyIndex],
+          content: sanitizeInput(content),
+          author: sanitizeInput(author) || 'Anonymous',
+          imageUrl: imageUrl ? sanitizeInput(imageUrl) : '',
+          updatedAt: Date.now()
+        }
+        replyFound = true
+        break
+      }
+    }
+    
+    if (!replyFound) {
+      return res.status(404).json({ error: 'Reply not found' })
+    }
+    
+    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error updating reply:', error)
+    res.status(500).json({ error: 'Failed to update reply' })
+  }
+})
+
+// Delete reply
+app.delete('/api/replies/:replyId', async (req, res) => {
+  try {
+    const { replyId } = req.params
+    
+    const data = await fs.readFile(POSTS_FILE, 'utf8')
+    const posts = JSON.parse(data)
+    
+    // Find and remove reply
+    let replyFound = false
+    for (const threadId in posts.replies) {
+      const replyIndex = posts.replies[threadId].findIndex(r => r.id === replyId)
+      if (replyIndex !== -1) {
+        posts.replies[threadId].splice(replyIndex, 1)
+        replyFound = true
+        
+        // Update thread reply count
+        for (const boardId in posts.threads) {
+          const thread = posts.threads[boardId].find(t => t.id === threadId)
+          if (thread) {
+            thread.replyCount = Math.max(0, (thread.replyCount || 0) - 1)
+            break
+          }
+        }
+        break
+      }
+    }
+    
+    if (!replyFound) {
+      return res.status(404).json({ error: 'Reply not found' })
+    }
+    
+    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2))
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting reply:', error)
+    res.status(500).json({ error: 'Failed to delete reply' })
   }
 })
 

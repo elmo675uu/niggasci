@@ -143,6 +143,7 @@ function App() {
           <ThreadView 
             threadId={currentThread.id}
             onBack={handleBackToThreads}
+            isAdminAuthenticated={isAdminAuthenticated}
           />
         )}
       </main>

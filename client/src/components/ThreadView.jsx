@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Heart, MessageSquare, User, Clock, Send } from 'lucide-react'
+import { ArrowLeft, Heart, MessageSquare, User, Clock, Send, Edit, Trash2 } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 
-const ThreadView = ({ threadId, onBack }) => {
+const ThreadView = ({ threadId, onBack, isAdminAuthenticated }) => {
   const [thread, setThread] = useState(null)
   const [replies, setReplies] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -13,6 +13,14 @@ const ThreadView = ({ threadId, onBack }) => {
     imageUrl: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingThread, setEditingThread] = useState(false)
+  const [editingReply, setEditingReply] = useState(null)
+  const [editData, setEditData] = useState({
+    title: '',
+    content: '',
+    author: '',
+    imageUrl: ''
+  })
 
   useEffect(() => {
     if (threadId) {
@@ -101,6 +109,101 @@ const ThreadView = ({ threadId, onBack }) => {
       }
     } catch (error) {
       console.error('Failed to toggle like:', error)
+    }
+  }
+
+  const handleEditThread = () => {
+    setEditData({
+      title: thread.title || '',
+      content: thread.content || '',
+      author: thread.author || '',
+      imageUrl: thread.imageUrl || ''
+    })
+    setEditingThread(true)
+  }
+
+  const handleEditReply = (reply) => {
+    setEditData({
+      title: '',
+      content: reply.content || '',
+      author: reply.author || '',
+      imageUrl: reply.imageUrl || ''
+    })
+    setEditingReply(reply.id)
+  }
+
+  const handleSaveEdit = async () => {
+    try {
+      if (editingThread) {
+        // Edit thread - we'll need to add this API endpoint
+        const response = await fetch(`/api/threads/${threadId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editData)
+        })
+        
+        if (response.ok) {
+          setEditingThread(false)
+          loadThread()
+        } else {
+          alert('Failed to update thread')
+        }
+      } else if (editingReply) {
+        // Edit reply - we'll need to add this API endpoint
+        const response = await fetch(`/api/replies/${editingReply}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editData)
+        })
+        
+        if (response.ok) {
+          setEditingReply(null)
+          loadThread()
+        } else {
+          alert('Failed to update reply')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save edit:', error)
+      alert('Failed to save changes')
+    }
+  }
+
+  const handleDeleteThread = async () => {
+    if (!confirm('Are you sure you want to delete this thread? This will also delete all replies.')) return
+    
+    try {
+      const response = await fetch(`/api/threads/${threadId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        onBack() // Go back to thread list
+      } else {
+        alert('Failed to delete thread')
+      }
+    } catch (error) {
+      console.error('Failed to delete thread:', error)
+      alert('Failed to delete thread')
+    }
+  }
+
+  const handleDeleteReply = async (replyId) => {
+    if (!confirm('Are you sure you want to delete this reply?')) return
+    
+    try {
+      const response = await fetch(`/api/replies/${replyId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        loadThread()
+      } else {
+        alert('Failed to delete reply')
+      }
+    } catch (error) {
+      console.error('Failed to delete reply:', error)
+      alert('Failed to delete reply')
     }
   }
 
@@ -314,43 +417,132 @@ const ThreadView = ({ threadId, onBack }) => {
               </div>
             </div>
             
-            <button
-              onClick={() => handleLikeToggle(thread.id, isLikedByUser(thread))}
-              className={`flex items-center space-x-1 px-3 py-2 rounded transition-colors ${
-                isLikedByUser(thread)
-                  ? 'bg-red-600 text-white'
-                  : 'bg-dark-700 hover:bg-dark-600 text-gray-400'
-              }`}
-            >
-              <Heart size={16} fill={isLikedByUser(thread) ? 'currentColor' : 'none'} />
-              <span>{thread.likes?.length || 0}</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleLikeToggle(thread.id, isLikedByUser(thread))}
+                className={`flex items-center space-x-1 px-3 py-2 rounded transition-colors ${
+                  isLikedByUser(thread)
+                    ? 'bg-red-600 text-white'
+                    : 'bg-dark-700 hover:bg-dark-600 text-gray-400'
+                }`}
+              >
+                <Heart size={16} fill={isLikedByUser(thread) ? 'currentColor' : 'none'} />
+                <span>{thread.likes?.length || 0}</span>
+              </button>
+              
+              {isAdminAuthenticated && (
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={handleEditThread}
+                    className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-primary-400 transition-all duration-300"
+                    title="Edit thread"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={handleDeleteThread}
+                    className="p-2 rounded-lg bg-dark-700 hover:bg-red-600 text-gray-400 hover:text-white transition-all duration-300"
+                    title="Delete thread"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
-            {thread.title && (
-              <h2 className="text-xl font-heading font-bold text-primary-400">
-                {thread.title}
-              </h2>
-            )}
-            
-            {thread.content && (
-              <div className="text-gray-300 leading-relaxed">
-                {renderHTMLContent(thread.content)}
+            {editingThread ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Thread Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.title}
+                    onChange={(e) => setEditData({...editData, title: e.target.value})}
+                    className="input-field w-full"
+                    placeholder="Thread title"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Content
+                  </label>
+                  <RichTextEditor
+                    value={editData.content}
+                    onChange={(value) => setEditData({...editData, content: value})}
+                    placeholder="Thread content"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Author
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.author}
+                    onChange={(e) => setEditData({...editData, author: e.target.value})}
+                    className="input-field w-full"
+                    placeholder="Author name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Image URL
+                  </label>
+                  <input
+                    type="url"
+                    value={editData.imageUrl}
+                    onChange={(e) => setEditData({...editData, imageUrl: e.target.value})}
+                    className="input-field w-full"
+                    placeholder="Image URL"
+                  />
+                </div>
+                
+                <div className="flex space-x-3">
+                  <button onClick={handleSaveEdit} className="btn-primary">
+                    Save Changes
+                  </button>
+                  <button 
+                    onClick={() => setEditingThread(false)} 
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            )}
-            
-            {thread.imageUrl && (
-              <div className="mt-4">
-                <img 
-                  src={thread.imageUrl} 
-                  alt={thread.title || 'Thread image'}
-                  className="w-full min-w-[300px] max-w-[500px] h-auto rounded-lg border border-dark-600"
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                  }}
-                />
-              </div>
+            ) : (
+              <>
+                {thread.title && (
+                  <h2 className="text-xl font-heading font-bold text-primary-400">
+                    {thread.title}
+                  </h2>
+                )}
+                
+                {thread.content && (
+                  <div className="text-gray-300 leading-relaxed">
+                    {renderHTMLContent(thread.content)}
+                  </div>
+                )}
+                
+                {thread.imageUrl && (
+                  <div className="mt-4">
+                    <img 
+                      src={thread.imageUrl} 
+                      alt={thread.title || 'Thread image'}
+                      className="w-full min-w-[300px] max-w-[500px] h-auto rounded-lg border border-dark-600"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -444,37 +636,113 @@ const ThreadView = ({ threadId, onBack }) => {
                     </div>
                   </div>
                   
-                  <button
-                    onClick={() => handleLikeToggle(reply.id, isLikedByUser(reply))}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded transition-colors ${
-                      isLikedByUser(reply)
-                        ? 'bg-red-600 text-white'
-                        : 'bg-dark-700 hover:bg-dark-600 text-gray-400'
-                    }`}
-                  >
-                    <Heart size={16} fill={isLikedByUser(reply) ? 'currentColor' : 'none'} />
-                    <span>{reply.likes?.length || 0}</span>
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleLikeToggle(reply.id, isLikedByUser(reply))}
+                      className={`flex items-center space-x-1 px-3 py-2 rounded transition-colors ${
+                        isLikedByUser(reply)
+                          ? 'bg-red-600 text-white'
+                          : 'bg-dark-700 hover:bg-dark-600 text-gray-400'
+                      }`}
+                    >
+                      <Heart size={16} fill={isLikedByUser(reply) ? 'currentColor' : 'none'} />
+                      <span>{reply.likes?.length || 0}</span>
+                    </button>
+                    
+                    {isAdminAuthenticated && (
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleEditReply(reply)}
+                          className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-primary-400 transition-all duration-300"
+                          title="Edit reply"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReply(reply.id)}
+                          className="p-2 rounded-lg bg-dark-700 hover:bg-red-600 text-gray-400 hover:text-white transition-all duration-300"
+                          title="Delete reply"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-3">
-                  {reply.content && (
-                    <div className="text-gray-300 leading-relaxed">
-                      {renderHTMLContent(reply.content)}
+                  {editingReply === reply.id ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Content
+                        </label>
+                        <RichTextEditor
+                          value={editData.content}
+                          onChange={(value) => setEditData({...editData, content: value})}
+                          placeholder="Reply content"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Author
+                        </label>
+                        <input
+                          type="text"
+                          value={editData.author}
+                          onChange={(e) => setEditData({...editData, author: e.target.value})}
+                          className="input-field w-full"
+                          placeholder="Author name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Image URL
+                        </label>
+                        <input
+                          type="url"
+                          value={editData.imageUrl}
+                          onChange={(e) => setEditData({...editData, imageUrl: e.target.value})}
+                          className="input-field w-full"
+                          placeholder="Image URL"
+                        />
+                      </div>
+                      
+                      <div className="flex space-x-3">
+                        <button onClick={handleSaveEdit} className="btn-primary">
+                          Save Changes
+                        </button>
+                        <button 
+                          onClick={() => setEditingReply(null)} 
+                          className="btn-secondary"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  
-                  {reply.imageUrl && (
-                    <div className="mt-4">
-                      <img 
-                        src={reply.imageUrl} 
-                        alt="Reply image"
-                        className="w-full min-w-[300px] max-w-[500px] h-auto rounded-lg border border-dark-600"
-                        onError={(e) => {
-                          e.target.style.display = 'none'
-                        }}
-                      />
-                    </div>
+                  ) : (
+                    <>
+                      {reply.content && (
+                        <div className="text-gray-300 leading-relaxed">
+                          {renderHTMLContent(reply.content)}
+                        </div>
+                      )}
+                      
+                      {reply.imageUrl && (
+                        <div className="mt-4">
+                          <img 
+                            src={reply.imageUrl} 
+                            alt="Reply image"
+                            className="w-full min-w-[300px] max-w-[500px] h-auto rounded-lg border border-dark-600"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
