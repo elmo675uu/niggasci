@@ -6,10 +6,9 @@ const LoadingScreen = ({ onComplete }) => {
 
   useEffect(() => {
     const loadingSteps = [
-      { progress: 20, text: 'Loading NIGGA SCIENCE...' },
-      { progress: 40, text: 'Connecting to server...' },
-      { progress: 60, text: 'Loading posts...' },
-      { progress: 80, text: 'Loading configuration...' },
+      { progress: 30, text: 'Loading NIGGA SCIENCE...' },
+      { progress: 60, text: 'Connecting to server...' },
+      { progress: 90, text: 'Loading content...' },
       { progress: 100, text: 'Ready!' }
     ]
 
@@ -24,9 +23,9 @@ const LoadingScreen = ({ onComplete }) => {
         clearInterval(interval)
         setTimeout(() => {
           onComplete()
-        }, 500)
+        }, 200) // Faster completion
       }
-    }, 200)
+    }, 150) // Faster steps
 
     return () => clearInterval(interval)
   }, [onComplete])

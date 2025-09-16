@@ -23,16 +23,36 @@ function App() {
     try {
       console.log('Loading data...')
       
-      // Use Promise.allSettled for better error handling and parallel loading
+      // Set fallback data immediately for faster initial render
+      setPosts({ pinned: [], user: [] })
+      setConfig({ 
+        siteTitle: 'NIGGA SCIENCE',
+        audioUrl: '/theme.mp3',
+        audioAutoplay: true,
+        audioLoop: true,
+        audioVolume: 0.3
+      })
+      
+      // Use Promise.allSettled with timeout for faster loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 3000) // 3 second timeout
+      )
+      
       const [postsResult, configResult] = await Promise.allSettled([
-        fetch('/api/posts', { 
-          cache: 'no-cache',
-          headers: { 'Accept': 'application/json' }
-        }),
-        fetch('/api/config', { 
-          cache: 'no-cache',
-          headers: { 'Accept': 'application/json' }
-        })
+        Promise.race([
+          fetch('/api/posts', { 
+            cache: 'no-cache',
+            headers: { 'Accept': 'application/json' }
+          }),
+          timeoutPromise
+        ]),
+        Promise.race([
+          fetch('/api/config', { 
+            cache: 'no-cache',
+            headers: { 'Accept': 'application/json' }
+          }),
+          timeoutPromise
+        ])
       ])
       
       // Handle posts
@@ -42,8 +62,6 @@ function App() {
         setPosts(postsData)
       } else {
         console.error('Failed to load posts:', postsResult.reason || postsResult.value?.status)
-        // Set empty posts as fallback
-        setPosts({ pinned: [], user: [] })
       }
       
       // Handle config
@@ -53,26 +71,9 @@ function App() {
         setConfig(configData)
       } else {
         console.error('Failed to load config:', configResult.reason || configResult.value?.status)
-        // Set default config as fallback
-        setConfig({ 
-          siteTitle: 'NIGGA SCIENCE',
-          audioUrl: '/theme.mp3',
-          audioAutoplay: true,
-          audioLoop: true,
-          audioVolume: 0.3
-        })
       }
     } catch (error) {
       console.error('Failed to load data:', error)
-      // Set fallback data
-      setPosts({ pinned: [], user: [] })
-      setConfig({ 
-        siteTitle: 'NIGGA SCIENCE',
-        audioUrl: '/theme.mp3',
-        audioAutoplay: true,
-        audioLoop: true,
-        audioVolume: 0.3
-      })
     } finally {
       setIsLoading(false)
     }
@@ -119,24 +120,9 @@ function App() {
     }
   }
 
-  // Show loading screen first, then main loading state
-  if (showLoadingScreen) {
+  // Show loading screen while loading
+  if (isLoading || showLoadingScreen) {
     return <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-900">
-        <div className="text-center">
-          <div className="text-primary-500 text-xl font-heading animate-pulse mb-4">
-            Loading NIGGA SCIENCE...
-          </div>
-          <div className="w-64 bg-dark-700 rounded-full h-2">
-            <div className="bg-primary-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }} />
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
