@@ -25,11 +25,9 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, 'uploads')
     // Create uploads directory if it doesn't exist
-    fs.mkdir(uploadDir, { recursive: true }).then(() => {
-      cb(null, uploadDir)
-    }).catch(err => {
-      cb(err, null)
-    })
+    fs.mkdir(uploadDir, { recursive: true })
+      .then(() => cb(null, uploadDir))
+      .catch(err => cb(err, null))
   },
   filename: (req, file, cb) => {
     // Generate unique filename with original extension
@@ -331,23 +329,36 @@ app.post('/api/posts', postLimiter, async (req, res) => {
 })
 
 // File upload endpoint
-app.post('/api/upload', upload.single('image'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' })
+app.post('/api/upload', (req, res) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error('Multer error:', err)
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 3MB.' })
+      }
+      if (err.message === 'Only image files are allowed') {
+        return res.status(400).json({ error: 'Only image files are allowed' })
+      }
+      return res.status(500).json({ error: 'File upload failed: ' + err.message })
     }
     
-    // Return the file URL
-    const fileUrl = `/uploads/${req.file.filename}`
-    res.json({ 
-      success: true, 
-      fileUrl: fileUrl,
-      filename: req.file.filename
-    })
-  } catch (error) {
-    console.error('File upload error:', error)
-    res.status(500).json({ error: 'File upload failed' })
-  }
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' })
+      }
+      
+      // Return the file URL
+      const fileUrl = `/uploads/${req.file.filename}`
+      res.json({ 
+        success: true, 
+        fileUrl: fileUrl,
+        filename: req.file.filename
+      })
+    } catch (error) {
+      console.error('File upload error:', error)
+      res.status(500).json({ error: 'File upload failed' })
+    }
+  })
 })
 
 // Update post
