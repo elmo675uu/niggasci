@@ -2,11 +2,11 @@ import React, { useState } from 'react'
 import { Send, User, Image, Type, X } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 
-const NewThreadForm = ({ boardId, onThreadCreated, onCancel }) => {
+const NewThreadForm = ({ boardId, onThreadCreated, onCancel, isAdminAuthenticated }) => {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    author: '',
+    author: isAdminAuthenticated ? 'Admin' : '',
     imageUrl: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -75,13 +75,19 @@ const NewThreadForm = ({ boardId, onThreadCreated, onCancel }) => {
           <label className="block text-sm font-medium text-gray-300 flex items-center">
             <User size={16} className="mr-2" />
             Author Name
+            {isAdminAuthenticated && (
+              <span className="ml-2 text-xs bg-primary-600 text-white px-2 py-1 rounded">
+                Admin
+              </span>
+            )}
           </label>
           <input
             type="text"
             value={formData.author}
             onChange={(e) => handleChange('author', e.target.value)}
-            placeholder="Your name (optional - defaults to Anonymous)"
-            className="input-field w-full"
+            placeholder={isAdminAuthenticated ? "Admin (automatically set)" : "Your name (optional - defaults to Anonymous)"}
+            className={`input-field w-full ${isAdminAuthenticated ? 'bg-primary-600/20 border-primary-500/50' : ''}`}
+            disabled={isAdminAuthenticated}
           />
         </div>
 

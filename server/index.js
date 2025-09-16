@@ -176,6 +176,23 @@ function sanitizeInput(input) {
   })
 }
 
+// URL sanitization function for image URLs
+function sanitizeUrl(url) {
+  if (typeof url !== 'string') return ''
+  
+  // Basic URL validation and sanitization
+  try {
+    const urlObj = new URL(url)
+    if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
+      return url
+    }
+  } catch (e) {
+    // Invalid URL
+  }
+  
+  return ''
+}
+
 // Validation functions
 function validatePost(post) {
   const errors = []
@@ -750,7 +767,7 @@ app.get('/api/info-posts', async (req, res) => {
 // Create info post (admin only)
 app.post('/api/info-posts', async (req, res) => {
   try {
-    const { title, content } = req.body
+    const { title, content, imageUrl } = req.body
     
     if (!title || !content) {
       return res.status(400).json({ error: 'Title and content are required' })
@@ -763,6 +780,7 @@ app.post('/api/info-posts', async (req, res) => {
       id: uuidv4(),
       title: sanitizeInput(title),
       content: sanitizeInput(content),
+      imageUrl: imageUrl ? sanitizeUrl(imageUrl) : '',
       timestamp: Date.now()
     }
     

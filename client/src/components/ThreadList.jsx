@@ -160,6 +160,7 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
                 loadThreads()
               }}
               onCancel={() => setShowNewThread(false)}
+              isAdminAuthenticated={isAdminAuthenticated}
             />
           </div>
         )}

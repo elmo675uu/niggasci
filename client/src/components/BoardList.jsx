@@ -12,7 +12,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [editBoardData, setEditBoardData] = useState({ name: '', description: '' })
   const [infoPosts, setInfoPosts] = useState([])
   const [showCreateInfoPost, setShowCreateInfoPost] = useState(false)
-  const [newInfoPost, setNewInfoPost] = useState({ title: '', content: '' })
+  const [newInfoPost, setNewInfoPost] = useState({ title: '', content: '', imageUrl: '' })
   const [isCreatingInfoPost, setIsCreatingInfoPost] = useState(false)
 
   useEffect(() => {
@@ -73,7 +73,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       })
 
       if (response.ok) {
-        setNewInfoPost({ title: '', content: '' })
+        setNewInfoPost({ title: '', content: '', imageUrl: '' })
         setShowCreateInfoPost(false)
         loadInfoPosts()
       } else {
@@ -530,6 +530,18 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                         <X size={16} />
                       </button>
                     </div>
+                    {post.imageUrl && (
+                      <div className="mb-4">
+                        <img
+                          src={post.imageUrl}
+                          alt="Info post image"
+                          className="min-w-[300px] max-w-[500px] h-auto rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                          }}
+                        />
+                      </div>
+                    )}
                     <div className="text-gray-300">
                       {renderHTMLContent(post.content)}
                     </div>
@@ -567,6 +579,18 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                     placeholder="e.g., Important Update"
                     className="input-field w-full"
                     required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Image URL (optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={newInfoPost.imageUrl}
+                    onChange={(e) => setNewInfoPost({...newInfoPost, imageUrl: e.target.value})}
+                    placeholder="https://example.com/image.jpg"
+                    className="input-field w-full"
                   />
                 </div>
                 <div>
