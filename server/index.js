@@ -330,7 +330,7 @@ app.post('/api/posts', postLimiter, async (req, res) => {
 
 // File upload endpoint
 app.post('/api/upload', (req, res) => {
-  upload.single('image')(req, res, (err) => {
+  upload.single('image')(req, res, async (err) => {
     if (err) {
       console.error('Multer error:', err)
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -346,6 +346,11 @@ app.post('/api/upload', (req, res) => {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' })
       }
+      
+      // Copy file to public_html for web server access
+      const publicUploadsDir = path.join(process.env.HOME || '/home/inuhen1', 'public_html/uploads')
+      await fs.mkdir(publicUploadsDir, { recursive: true })
+      await fs.copyFile(req.file.path, path.join(publicUploadsDir, req.file.filename))
       
       // Return the file URL
       const fileUrl = `/uploads/${req.file.filename}`
