@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Pin, PinOff, Edit, Trash2, User, Clock, Heart } from 'lucide-react'
+import RichTextEditor from './RichTextEditor'
 
 const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
   const [isEditing, setIsEditing] = useState(false)
@@ -251,12 +252,10 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
             placeholder="Post title"
             className="input-field w-full"
           />
-          <textarea
+          <RichTextEditor
             value={editData.content}
-            onChange={(e) => setEditData({...editData, content: e.target.value})}
+            onChange={(value) => setEditData({...editData, content: value})}
             placeholder="Post content"
-            rows={4}
-            className="input-field w-full resize-none"
           />
           <input
             type="text"
