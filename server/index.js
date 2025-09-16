@@ -150,9 +150,8 @@ async function initializeFiles() {
         title: "NIGGA SCIENCE",
         socialLinks: {
           twitter: "https://twitter.com/niggachain",
-          telegram: "https://t.me/niggachain",
-          discord: "https://discord.gg/niggachain",
-          medium: "https://medium.com/@niggachain"
+          dexscreener: "https://dexscreener.com/solana/niggachain",
+          pumpfun: "https://pump.fun/niggachain"
         },
         audioUrl: "/theme.mp3",
         audioAutoplay: true,

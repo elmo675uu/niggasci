@@ -84,6 +84,96 @@ const Post = ({ post, isPinned, onRefresh }) => {
     })
   }
 
+  const renderHTMLContent = (content) => {
+    // Simple HTML parsing with regex for better performance
+    const parts = content.split(/(<[^>]+>)/g)
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('<') && part.endsWith('>')) {
+        const tagMatch = part.match(/^<(\/?)([^>\s]+)([^>]*)>$/)
+        if (tagMatch) {
+          const [, closing, tagName, attributes] = tagMatch
+          
+          if (closing) {
+            return null // Closing tags are handled by opening tags
+          }
+          
+          switch (tagName.toLowerCase()) {
+            case 'b':
+              return { type: 'bold', key: `bold-${index}` }
+            case 'i':
+              return { type: 'italic', key: `italic-${index}` }
+            case 'strong':
+              return { type: 'strong', key: `strong-${index}` }
+            case 'em':
+              return { type: 'em', key: `em-${index}` }
+            case 'br':
+              return <br key={`br-${index}`} />
+            case 'p':
+              return { type: 'paragraph', key: `p-${index}` }
+            default:
+              return null
+          }
+        }
+      }
+      return { type: 'text', content: part, key: `text-${index}` }
+    }).filter(Boolean)
+  }
+
+  const renderFormattedContent = (content) => {
+    const elements = renderHTMLContent(content)
+    const result = []
+    let currentFormatting = []
+    
+    elements.forEach((element, index) => {
+      if (element.type === 'text') {
+        let text = element.content
+        if (text) {
+          // Apply current formatting
+          let formattedText = renderContent(text)
+          
+          // Apply formatting stack
+          currentFormatting.reverse().forEach(format => {
+            switch (format) {
+              case 'bold':
+                formattedText = <b key={`format-${index}-${format}`}>{formattedText}</b>
+                break
+              case 'italic':
+                formattedText = <i key={`format-${index}-${format}`}>{formattedText}</i>
+                break
+              case 'strong':
+                formattedText = <strong key={`format-${index}-${format}`} className="text-primary-400 font-bold">{formattedText}</strong>
+                break
+              case 'em':
+                formattedText = <em key={`format-${index}-${format}`}>{formattedText}</em>
+                break
+            }
+          })
+          
+          result.push(formattedText)
+        }
+      } else if (element.type === 'bold') {
+        currentFormatting.push('bold')
+      } else if (element.type === 'italic') {
+        currentFormatting.push('italic')
+      } else if (element.type === 'strong') {
+        currentFormatting.push('strong')
+      } else if (element.type === 'em') {
+        currentFormatting.push('em')
+      } else if (element.type === 'paragraph') {
+        currentFormatting.push('paragraph')
+      } else if (element === null) {
+        // Closing tag - remove from formatting stack
+        currentFormatting.pop()
+      } else {
+        // Direct elements like <br>
+        result.push(element)
+      }
+    })
+    
+    return result
+  }
+
   return (
     <article className={`card ${isPinned ? 'card-admin' : ''} group`}>
       {/* Admin Badge for Pinned Posts */}
@@ -178,8 +268,8 @@ const Post = ({ post, isPinned, onRefresh }) => {
             </h3>
           )}
           {post.content && (
-            <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-              {renderContent(post.content)}
+            <div className="text-gray-300 leading-relaxed">
+              {renderFormattedContent(post.content)}
             </div>
           )}
           {post.imageUrl && (
@@ -187,7 +277,7 @@ const Post = ({ post, isPinned, onRefresh }) => {
               <img 
                 src={post.imageUrl} 
                 alt={post.title || 'Post image'}
-                className="max-w-full h-auto rounded-lg border border-dark-600"
+                className="w-full min-w-[1200px] h-auto rounded-lg border border-dark-600"
                 onError={(e) => {
                   e.target.style.display = 'none'
                 }}

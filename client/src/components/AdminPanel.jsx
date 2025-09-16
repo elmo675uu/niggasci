@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, Save, Plus, Twitter, MessageCircle, Users, BookOpen } from 'lucide-react'
+import { X, Save, Plus, Twitter, TrendingUp, Zap } from 'lucide-react'
 
 const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('posts')
@@ -267,51 +267,34 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <MessageCircle size={16} className="mr-2" />
-                    Telegram
+                    <TrendingUp size={16} className="mr-2" />
+                    Dexscreener
                   </label>
                   <input
                     type="url"
-                    value={configData.socialLinks.telegram}
+                    value={configData.socialLinks.dexscreener}
                     onChange={(e) => setConfigData({
                       ...configData, 
-                      socialLinks: {...configData.socialLinks, telegram: e.target.value}
+                      socialLinks: {...configData.socialLinks, dexscreener: e.target.value}
                     })}
-                    placeholder="https://t.me/username"
+                    placeholder="https://dexscreener.com/solana/token"
                     className="input-field w-full"
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <Users size={16} className="mr-2" />
-                    Discord
+                    <Zap size={16} className="mr-2" />
+                    Pump Fun
                   </label>
                   <input
                     type="url"
-                    value={configData.socialLinks.discord}
+                    value={configData.socialLinks.pumpfun}
                     onChange={(e) => setConfigData({
                       ...configData, 
-                      socialLinks: {...configData.socialLinks, discord: e.target.value}
+                      socialLinks: {...configData.socialLinks, pumpfun: e.target.value}
                     })}
-                    placeholder="https://discord.gg/invite"
-                    className="input-field w-full"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <BookOpen size={16} className="mr-2" />
-                    Medium
-                  </label>
-                  <input
-                    type="url"
-                    value={configData.socialLinks.medium}
-                    onChange={(e) => setConfigData({
-                      ...configData, 
-                      socialLinks: {...configData.socialLinks, medium: e.target.value}
-                    })}
-                    placeholder="https://medium.com/@username"
+                    placeholder="https://pump.fun/token"
                     className="input-field w-full"
                   />
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Send, User, Image, Type } from 'lucide-react'
+import RichTextEditor from './RichTextEditor'
 
 const NewPostForm = ({ onAddPost }) => {
   const [formData, setFormData] = useState({
@@ -80,13 +81,11 @@ const NewPostForm = ({ onAddPost }) => {
           />
         </div>
 
-        {/* Content Field */}
-        <textarea
+        {/* Content Field with Rich Text Editor */}
+        <RichTextEditor
           value={formData.content}
-          onChange={(e) => handleChange('content', e.target.value)}
+          onChange={(value) => handleChange('content', value)}
           placeholder="What's on your mind? (optional)"
-          rows={4}
-          className="input-field resize-none"
         />
 
         {/* Image URL Field */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Volume2, VolumeX, Settings, Twitter, MessageCircle, Users, BookOpen } from 'lucide-react'
+import { Volume2, VolumeX, Settings, Twitter, TrendingUp, Zap } from 'lucide-react'
 
 const Header = ({ config, onToggleAdmin, showAdmin }) => {
   const [isMuted, setIsMuted] = useState(false)
@@ -11,9 +11,8 @@ const Header = ({ config, onToggleAdmin, showAdmin }) => {
 
   const socialLinks = config.socialLinks || {
     twitter: '#',
-    telegram: '#',
-    discord: '#',
-    medium: '#'
+    dexscreener: '#',
+    pumpfun: '#'
   }
 
   return (
@@ -45,31 +44,22 @@ const Header = ({ config, onToggleAdmin, showAdmin }) => {
               <Twitter size={20} />
             </a>
             <a 
-              href={socialLinks.telegram} 
+              href={socialLinks.dexscreener} 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-primary-400 transition-colors duration-300"
-              aria-label="Telegram"
+              aria-label="Dexscreener"
             >
-              <MessageCircle size={20} />
+              <TrendingUp size={20} />
             </a>
             <a 
-              href={socialLinks.discord} 
+              href={socialLinks.pumpfun} 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-primary-400 transition-colors duration-300"
-              aria-label="Discord"
+              aria-label="Pump Fun"
             >
-              <Users size={20} />
-            </a>
-            <a 
-              href={socialLinks.medium} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-primary-400 transition-colors duration-300"
-              aria-label="Medium"
-            >
-              <BookOpen size={20} />
+              <Zap size={20} />
             </a>
           </div>
 
