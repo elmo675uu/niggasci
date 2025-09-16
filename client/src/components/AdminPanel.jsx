@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { X, Save, Plus, Twitter, TrendingUp, Zap } from 'lucide-react'
+import RichTextEditor from './RichTextEditor'
 
 const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('posts')
@@ -176,13 +177,10 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
                   required
                 />
                 
-                <textarea
+                <RichTextEditor
                   value={newPost.content}
-                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                  onChange={(value) => setNewPost({...newPost, content: value})}
                   placeholder="Post content"
-                  rows={4}
-                  className="input-field w-full resize-none"
-                  required
                 />
                 
                 <div className="flex justify-end">
