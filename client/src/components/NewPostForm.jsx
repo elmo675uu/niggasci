@@ -68,7 +68,7 @@ const NewPostForm = ({ onAddPost }) => {
             value={formData.author}
             onChange={(e) => handleChange('author', e.target.value)}
             placeholder="Your name (optional - defaults to Anonymous)"
-            className="input-field w-full"
+            className="input-field w-full h-24 text-base"
           />
         </div>
 
@@ -83,7 +83,7 @@ const NewPostForm = ({ onAddPost }) => {
             value={formData.title}
             onChange={(e) => handleChange('title', e.target.value)}
             placeholder="Post title (optional)"
-            className="input-field w-full"
+            className="input-field w-full h-24 text-base"
           />
         </div>
 
@@ -110,7 +110,7 @@ const NewPostForm = ({ onAddPost }) => {
             value={formData.imageUrl}
             onChange={(e) => handleChange('imageUrl', e.target.value)}
             placeholder="Image URL (optional)"
-            className="input-field w-full"
+            className="input-field w-full h-24 text-base"
           />
         </div>
 
