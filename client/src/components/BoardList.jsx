@@ -189,9 +189,10 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
 
   const handleDragStart = (e, board) => {
     if (!isAdminAuthenticated) return
+    console.log('Drag start:', board.id)
     setDraggedBoard(board)
     e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/html', e.target.outerHTML)
+    e.dataTransfer.setData('text/plain', board.id)
     e.target.style.opacity = '0.5'
   }
 
@@ -201,7 +202,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   }
 
   const handleDragOver = (e) => {
-    if (!isAdminAuthenticated) return
+    if (!isAdminAuthenticated || !draggedBoard) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
   }
@@ -210,6 +211,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
     if (!isAdminAuthenticated || !draggedBoard) return
     
     e.preventDefault()
+    console.log('Drop on:', targetBoard.id, 'from:', draggedBoard.id)
     
     if (draggedBoard.id === targetBoard.id) return
     
@@ -468,10 +470,22 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                 isAdminAuthenticated ? 'cursor-move' : ''
               } ${draggedBoard?.id === board.id ? 'opacity-50' : ''}`}
               draggable={isAdminAuthenticated}
-              onDragStart={(e) => handleDragStart(e, board)}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, board)}
+              onDragStart={(e) => {
+                e.stopPropagation()
+                handleDragStart(e, board)
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation()
+                handleDragEnd(e)
+              }}
+              onDragOver={(e) => {
+                e.stopPropagation()
+                handleDragOver(e)
+              }}
+              onDrop={(e) => {
+                e.stopPropagation()
+                handleDrop(e, board)
+              }}
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
