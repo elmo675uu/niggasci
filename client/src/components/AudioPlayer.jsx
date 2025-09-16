@@ -10,7 +10,7 @@ const AudioPlayer = ({ config }) => {
     try {
       return localStorage.getItem('audioEnabled') === 'true'
     } catch {
-      return false
+      return true // Default to true for immediate playback
     }
   })
 
@@ -37,29 +37,25 @@ const AudioPlayer = ({ config }) => {
 
     const resumeWithSoundIfAllowed = async () => {
       if (!desiredSrc) return
-      if (hasUserInteracted) {
-        try {
-          audio.muted = false
-          setIsMuted(false)
-          setShowPlayOverlay(false)
-          // Try to play, but do not force errors to surface
-          await audio.play().catch(() => {})
-          setIsPlaying(!audio.paused)
-        } catch {
-          // ignore
-        }
-        return
-      }
-
-      if (!audioAutoplay) return
-
+      
+      // Always try to play immediately without overlay
       try {
-        audio.muted = true
-        await audio.play()
-        setIsPlaying(true)
-        setShowPlayOverlay(true)
+        audio.muted = false
+        setIsMuted(false)
+        setShowPlayOverlay(false)
+        setHasUserInteracted(true)
+        try { localStorage.setItem('audioEnabled', 'true') } catch {}
+        
+        await audio.play().catch(() => {
+          // If autoplay fails, show overlay as fallback
+          setShowPlayOverlay(true)
+          setHasUserInteracted(false)
+        })
+        setIsPlaying(!audio.paused)
       } catch {
+        // If all else fails, show overlay
         setShowPlayOverlay(true)
+        setHasUserInteracted(false)
       }
     }
 
@@ -76,7 +72,11 @@ const AudioPlayer = ({ config }) => {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('error', handleError)
 
-    setTimeout(resumeWithSoundIfAllowed, 300)
+    // Try to play immediately
+    resumeWithSoundIfAllowed()
+    
+    // Also try after a short delay as backup
+    setTimeout(resumeWithSoundIfAllowed, 100)
 
     return () => {
       audio.removeEventListener('play', handlePlay)
