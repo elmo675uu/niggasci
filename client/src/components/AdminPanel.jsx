@@ -59,9 +59,17 @@ const AdminPanel = ({ config, onClose, onUpdateConfig, onAdminLogin }) => {
     return (
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
         <div className="card max-w-md w-full mx-4">
-          <h3 className="text-xl font-heading font-bold text-primary-500 mb-4">
-            Admin Login
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-heading font-bold text-primary-500">
+              Admin Login
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-white transition-all duration-300"
+            >
+              <X size={20} />
+            </button>
+          </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -76,9 +84,18 @@ const AdminPanel = ({ config, onClose, onUpdateConfig, onAdminLogin }) => {
                 required
               />
             </div>
-            <button type="submit" className="btn-primary w-full">
-              Login
-            </button>
+            <div className="flex space-x-3">
+              <button type="submit" className="btn-primary flex-1">
+                Login
+              </button>
+              <button 
+                type="button" 
+                onClick={onClose}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       </div>
