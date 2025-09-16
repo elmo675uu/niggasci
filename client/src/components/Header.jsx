@@ -51,7 +51,7 @@ const Header = ({ config, onToggleAdmin, showAdmin }) => {
               aria-label="Dexscreener"
             >
               <img 
-                src="/dexscreener-icon.svg" 
+                src="/dexscreener-favicon.ico" 
                 alt="Dexscreener" 
                 width="20" 
                 height="20"
@@ -66,7 +66,7 @@ const Header = ({ config, onToggleAdmin, showAdmin }) => {
               aria-label="Pump Fun"
             >
               <img 
-                src="/pumpfun-icon.svg" 
+                src="/pumpfun-favicon.ico" 
                 alt="Pump Fun" 
                 width="20" 
                 height="20"
