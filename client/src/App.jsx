@@ -3,6 +3,7 @@ import Header from './components/Header'
 import Board from './components/Board'
 import AdminPanel from './components/AdminPanel'
 import AudioPlayer from './components/AudioPlayer'
+import SnowflakeAnimation from './components/SnowflakeAnimation'
 
 function App() {
   const [posts, setPosts] = useState({ pinned: [], user: [] })
@@ -99,6 +100,7 @@ function App() {
       </main>
       
       <AudioPlayer config={config} />
+      <SnowflakeAnimation />
       
       {showAdmin && (
         <AdminPanel 
