@@ -9,7 +9,7 @@ import dotenv from 'dotenv'
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import multer from 'multer'
+// multer removed - no more file uploads
 
 // Load environment variables
 dotenv.config()
@@ -20,36 +20,7 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'uploads')
-    // Create uploads directory if it doesn't exist
-    fs.mkdir(uploadDir, { recursive: true })
-      .then(() => cb(null, uploadDir))
-      .catch(err => cb(err, null))
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename with original extension
-    const uniqueName = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`
-    cb(null, uniqueName)
-  }
-})
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 3 * 1024 * 1024, // 3MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    // Allow only image files
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true)
-    } else {
-      cb(new Error('Only image files are allowed'), false)
-    }
-  }
-})
+// File upload functionality removed - use external URLs only
 
 // Security middleware
 app.use(helmet({
@@ -99,8 +70,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.text({ type: 'text/plain', limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+// Static file serving removed - no more uploads
 
 // Fallback: if body came as plain text "key:value" lines, coerce to object
 app.use((req, _res, next) => {
@@ -328,43 +298,7 @@ app.post('/api/posts', postLimiter, async (req, res) => {
   }
 })
 
-// File upload endpoint
-app.post('/api/upload', (req, res) => {
-  upload.single('image')(req, res, async (err) => {
-    if (err) {
-      console.error('Multer error:', err)
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'File too large. Maximum size is 3MB.' })
-      }
-      if (err.message === 'Only image files are allowed') {
-        return res.status(400).json({ error: 'Only image files are allowed' })
-      }
-      return res.status(500).json({ error: 'File upload failed: ' + err.message })
-    }
-    
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' })
-      }
-      
-      // Copy file to public_html for web server access
-      const publicUploadsDir = path.join(process.env.HOME || '/home/inuhen1', 'public_html/uploads')
-      await fs.mkdir(publicUploadsDir, { recursive: true })
-      await fs.copyFile(req.file.path, path.join(publicUploadsDir, req.file.filename))
-      
-      // Return the file URL
-      const fileUrl = `/uploads/${req.file.filename}`
-      res.json({ 
-        success: true, 
-        fileUrl: fileUrl,
-        filename: req.file.filename
-      })
-    } catch (error) {
-      console.error('File upload error:', error)
-      res.status(500).json({ error: 'File upload failed' })
-    }
-  })
-})
+// File upload endpoint removed - use external URLs only
 
 // Update post
 app.put('/api/posts/:id', async (req, res) => {
