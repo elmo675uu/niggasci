@@ -33,9 +33,8 @@ function App() {
         description: "The ultimate imageboard for nigga science discussions",
         socialLinks: {
           twitter: "https://twitter.com/niggascience",
-          telegram: "https://t.me/niggascience", 
-          discord: "https://discord.gg/niggascience",
-          medium: "https://medium.com/@niggascience"
+          dexscreener: "https://dexscreener.com/solana/niggascience",
+          pumpfun: "https://pump.fun/niggascience"
         },
         audioUrl: "/theme.mp3",
         audioAutoplay: true,

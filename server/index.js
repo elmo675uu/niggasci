@@ -127,20 +127,19 @@ async function initializeFiles() {
     try {
       await fs.access(CONFIG_FILE)
     } catch {
-      const initialConfig = {
-        title: "NIGGA SCIENCE",
-        description: "The ultimate imageboard for nigga science discussions",
-        socialLinks: {
-          twitter: "https://twitter.com/niggascience",
-          telegram: "https://t.me/niggascience",
-          discord: "https://discord.gg/niggascience",
-          medium: "https://medium.com/@niggascience"
-        },
-        audioUrl: "/theme.mp3",
-        audioAutoplay: true,
-        audioLoop: true,
-        audioVolume: 0.3
-      }
+       const initialConfig = {
+         title: "NIGGA SCIENCE",
+         description: "The ultimate imageboard for nigga science discussions",
+         socialLinks: {
+           twitter: "https://twitter.com/niggascience",
+           dexscreener: "https://dexscreener.com/solana/niggascience",
+           pumpfun: "https://pump.fun/niggascience"
+         },
+         audioUrl: "/theme.mp3",
+         audioAutoplay: true,
+         audioLoop: true,
+         audioVolume: 0.3
+       }
       await fs.writeFile(CONFIG_FILE, JSON.stringify(initialConfig, null, 2))
     }
   } catch (error) {

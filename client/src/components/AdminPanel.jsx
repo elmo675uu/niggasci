@@ -155,7 +155,7 @@ const AdminPanel = ({ config, onClose, onUpdateConfig, onAdminLogin }) => {
                 Social Links
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Twitter
@@ -171,40 +171,27 @@ const AdminPanel = ({ config, onClose, onUpdateConfig, onAdminLogin }) => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Telegram
+                    Dexscreener
                   </label>
                   <input
                     type="url"
-                    value={configData.socialLinks?.telegram || ''}
-                    onChange={(e) => handleSocialLinkChange('telegram', e.target.value)}
+                    value={configData.socialLinks?.dexscreener || ''}
+                    onChange={(e) => handleSocialLinkChange('dexscreener', e.target.value)}
                     className="input-field w-full"
-                    placeholder="https://t.me/username"
+                    placeholder="https://dexscreener.com/solana/token"
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Discord
+                    Pump Fun
                   </label>
                   <input
                     type="url"
-                    value={configData.socialLinks?.discord || ''}
-                    onChange={(e) => handleSocialLinkChange('discord', e.target.value)}
+                    value={configData.socialLinks?.pumpfun || ''}
+                    onChange={(e) => handleSocialLinkChange('pumpfun', e.target.value)}
                     className="input-field w-full"
-                    placeholder="https://discord.gg/invite"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Medium
-                  </label>
-                  <input
-                    type="url"
-                    value={configData.socialLinks?.medium || ''}
-                    onChange={(e) => handleSocialLinkChange('medium', e.target.value)}
-                    className="input-field w-full"
-                    placeholder="https://medium.com/@username"
+                    placeholder="https://pump.fun/token"
                   />
                 </div>
               </div>
