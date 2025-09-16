@@ -26,9 +26,9 @@ const SnowflakeAnimation = () => {
         x: Math.random() * canvas.width,
         y: -50,
         size: Math.random() * 20 + 10, // 10-30px
-        speed: Math.random() * 0.2 + 0.1, // 0.1-0.3px per frame (very slow)
+        speed: Math.random() * 0.05 + 0.02, // 0.02-0.07px per frame (extremely slow)
         rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * 0.005, // Very slow rotation
+        rotationSpeed: (Math.random() - 0.5) * 0.001, // Extremely slow rotation
         opacity: 1,
         meltPoint: canvas.height * 0.7 + Math.random() * canvas.height * 0.3, // Start melting at 70% down
         melted: false
@@ -107,7 +107,7 @@ const SnowflakeAnimation = () => {
       snowflakes.forEach(drawSnowflake)
       
       // Add new snowflakes occasionally
-      if (Math.random() < 0.001) { // 0.1% chance per frame (very infrequent)
+      if (Math.random() < 0.0002) { // 0.02% chance per frame (extremely infrequent)
         setSnowflakes(prev => [...prev, createSnowflake()])
       }
       
