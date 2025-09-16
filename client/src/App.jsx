@@ -56,53 +56,43 @@ function App() {
             user: []
           })
         }
-      }, 2000) // 2 second fallback
+      }, 3000) // 3 second fallback
       
-      // Load posts with aggressive optimization - remove ALL images for fast loading
+      // Load posts with moderate optimization - only remove very large base64 images
       try {
-        console.log('Loading posts with image optimization...')
+        console.log('Loading posts with moderate optimization...')
         const postsResponse = await Promise.race([
           fetch('/api/posts', { 
             cache: 'no-cache',
             headers: { 'Accept': 'application/json' }
           }),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Posts loading timeout')), 3000) // 3 second timeout
+            setTimeout(() => reject(new Error('Posts loading timeout')), 5000) // 5 second timeout
           )
         ])
         
         if (postsResponse.ok) {
           const postsData = await postsResponse.json()
-          console.log('Raw posts data loaded, optimizing...')
+          console.log('Posts data loaded, applying moderate optimization...')
           
-          // Aggressively optimize posts data by removing ALL images for fast loading
+          // Moderate optimization - only remove very large base64 images (>200KB)
           const optimizedPosts = {
             pinned: postsData.pinned?.map(post => ({
-              id: post.id,
-              title: post.title,
-              content: post.content,
-              author: post.author,
-              timestamp: post.timestamp,
-              pinned: post.pinned,
-              admin: post.admin,
-              likes: post.likes || [],
-              imageUrl: '' // Remove ALL images for fast loading
+              ...post,
+              imageUrl: post.imageUrl && post.imageUrl.length > 200000 ? 
+                'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A' : 
+                post.imageUrl
             })) || [],
             user: postsData.user?.map(post => ({
-              id: post.id,
-              title: post.title,
-              content: post.content,
-              author: post.author,
-              timestamp: post.timestamp,
-              pinned: post.pinned,
-              admin: post.admin,
-              likes: post.likes || [],
-              imageUrl: '' // Remove ALL images for fast loading
+              ...post,
+              imageUrl: post.imageUrl && post.imageUrl.length > 200000 ? 
+                'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A' : 
+                post.imageUrl
             })) || []
           }
           
           setPosts(optimizedPosts)
-          console.log('Posts optimized and loaded (images removed for performance)')
+          console.log('Posts loaded with moderate optimization (only very large images removed)')
         } else {
           console.error(`Posts API failed with status: ${postsResponse.status}`)
         }
