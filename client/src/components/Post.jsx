@@ -85,94 +85,48 @@ const Post = ({ post, isPinned, onRefresh }) => {
   }
 
   const renderHTMLContent = (content) => {
-    // Simple HTML parsing with regex for better performance
-    const parts = content.split(/(<[^>]+>)/g)
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = content
     
-    return parts.map((part, index) => {
-      if (part.startsWith('<') && part.endsWith('>')) {
-        const tagMatch = part.match(/^<(\/?)([^>\s]+)([^>]*)>$/)
-        if (tagMatch) {
-          const [, closing, tagName, attributes] = tagMatch
-          
-          if (closing) {
-            return null // Closing tags are handled by opening tags
-          }
-          
-          switch (tagName.toLowerCase()) {
-            case 'b':
-              return { type: 'bold', key: `bold-${index}` }
-            case 'i':
-              return { type: 'italic', key: `italic-${index}` }
-            case 'strong':
-              return { type: 'strong', key: `strong-${index}` }
-            case 'em':
-              return { type: 'em', key: `em-${index}` }
-            case 'br':
-              return <br key={`br-${index}`} />
-            case 'p':
-              return { type: 'paragraph', key: `p-${index}` }
-            default:
-              return null
-          }
+    // Convert to React elements
+    const convertNodeToReact = (node, key = 0) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return renderContent(node.textContent)
+      }
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName.toLowerCase()
+        const children = Array.from(node.childNodes).map((child, index) => 
+          convertNodeToReact(child, index)
+        )
+        
+        switch (tagName) {
+          case 'b':
+            return <b key={key}>{children}</b>
+          case 'i':
+            return <i key={key}>{children}</i>
+          case 'strong':
+            return <strong key={key} className="text-primary-400 font-bold">{children}</strong>
+          case 'em':
+            return <em key={key}>{children}</em>
+          case 'br':
+            return <br key={key} />
+          case 'p':
+            return <p key={key} className="mb-2">{children}</p>
+          default:
+            return <span key={key}>{children}</span>
         }
       }
-      return { type: 'text', content: part, key: `text-${index}` }
-    }).filter(Boolean)
+      
+      return null
+    }
+    
+    return Array.from(tempDiv.childNodes).map((node, index) => 
+      convertNodeToReact(node, index)
+    )
   }
 
-  const renderFormattedContent = (content) => {
-    const elements = renderHTMLContent(content)
-    const result = []
-    let currentFormatting = []
-    
-    elements.forEach((element, index) => {
-      if (element.type === 'text') {
-        let text = element.content
-        if (text) {
-          // Apply current formatting
-          let formattedText = renderContent(text)
-          
-          // Apply formatting stack
-          currentFormatting.reverse().forEach(format => {
-            switch (format) {
-              case 'bold':
-                formattedText = <b key={`format-${index}-${format}`}>{formattedText}</b>
-                break
-              case 'italic':
-                formattedText = <i key={`format-${index}-${format}`}>{formattedText}</i>
-                break
-              case 'strong':
-                formattedText = <strong key={`format-${index}-${format}`} className="text-primary-400 font-bold">{formattedText}</strong>
-                break
-              case 'em':
-                formattedText = <em key={`format-${index}-${format}`}>{formattedText}</em>
-                break
-            }
-          })
-          
-          result.push(formattedText)
-        }
-      } else if (element.type === 'bold') {
-        currentFormatting.push('bold')
-      } else if (element.type === 'italic') {
-        currentFormatting.push('italic')
-      } else if (element.type === 'strong') {
-        currentFormatting.push('strong')
-      } else if (element.type === 'em') {
-        currentFormatting.push('em')
-      } else if (element.type === 'paragraph') {
-        currentFormatting.push('paragraph')
-      } else if (element === null) {
-        // Closing tag - remove from formatting stack
-        currentFormatting.pop()
-      } else {
-        // Direct elements like <br>
-        result.push(element)
-      }
-    })
-    
-    return result
-  }
 
   return (
     <article className={`card ${isPinned ? 'card-admin' : ''} group`}>
@@ -269,7 +223,7 @@ const Post = ({ post, isPinned, onRefresh }) => {
           )}
           {post.content && (
             <div className="text-gray-300 leading-relaxed">
-              {renderFormattedContent(post.content)}
+              {renderHTMLContent(post.content)}
             </div>
           )}
           {post.imageUrl && (
