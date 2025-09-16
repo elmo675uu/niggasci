@@ -212,28 +212,6 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
           </div>
         </div>
         
-        {/* Like Button - Available to all users */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleLikeToggle}
-            className={`p-2 rounded-lg transition-all duration-300 ${
-              isLikedByUser()
-                ? 'bg-red-600 text-white'
-                : 'bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-red-400'
-            }`}
-            title={isLikedByUser() ? 'Unlike post' : 'Like post'}
-          >
-            <Heart 
-              size={16} 
-              fill={isLikedByUser() ? 'currentColor' : 'none'} 
-            />
-          </button>
-          {post.likes && post.likes.length > 0 && (
-            <span className="text-sm text-gray-400">
-              {post.likes.length}
-            </span>
-          )}
-        </div>
 
         {/* Admin Controls */}
         {isAdminAuthenticated && (
@@ -325,6 +303,34 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
           )}
         </div>
       )}
+
+      {/* Like Button - Below post content */}
+      <div className="mt-4 pt-3 border-t border-dark-700">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleLikeToggle}
+            className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+              isLikedByUser()
+                ? 'bg-red-600 text-white'
+                : 'bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-red-400'
+            }`}
+            title={isLikedByUser() ? 'Unlike post' : 'Like post'}
+          >
+            <Heart 
+              size={16} 
+              fill={isLikedByUser() ? 'currentColor' : 'none'} 
+            />
+            <span className="text-sm">
+              {isLikedByUser() ? 'Liked' : 'Like'}
+            </span>
+          </button>
+          {post.likes && post.likes.length > 0 && (
+            <span className="text-sm text-gray-400">
+              {post.likes.length} {post.likes.length === 1 ? 'like' : 'likes'}
+            </span>
+          )}
+        </div>
+      </div>
     </article>
   )
 }
