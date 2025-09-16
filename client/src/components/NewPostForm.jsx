@@ -16,6 +16,8 @@ const NewPostForm = ({ onAddPost }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    console.log('Form submission started with data:', formData)
+    
     if (!formData.title && !formData.content && !formData.imageUrl) {
       alert('Please enter at least a title, content, or image URL')
       return
@@ -24,10 +26,17 @@ const NewPostForm = ({ onAddPost }) => {
     setIsSubmitting(true)
     
     try {
-      await onAddPost({
+      const postData = {
         ...formData,
         author: formData.author || 'Anonymous'
-      })
+      }
+      
+      console.log('Submitting post with data:', postData)
+      console.log('Image URL length:', postData.imageUrl ? postData.imageUrl.length : 0)
+      
+      await onAddPost(postData)
+      
+      console.log('Post submitted successfully, resetting form...')
       
       // Reset form
       setFormData({
@@ -39,7 +48,7 @@ const NewPostForm = ({ onAddPost }) => {
       setUploadedImageUrl('')
     } catch (error) {
       console.error('Failed to submit post:', error)
-      alert('Failed to submit post. Please try again.')
+      alert('Failed to submit post. Please try again. Error: ' + error.message)
     } finally {
       setIsSubmitting(false)
     }
@@ -54,21 +63,29 @@ const NewPostForm = ({ onAddPost }) => {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0]
-    if (!file) return
+    if (!file) {
+      console.log('No file selected')
+      return
+    }
+
+    console.log('File selected:', file.name, file.type, file.size)
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.error('Invalid file type:', file.type)
       alert('Please select an image file')
       return
     }
 
     // Validate file size (3MB limit)
     if (file.size > 3 * 1024 * 1024) {
+      console.error('File too large:', file.size)
       alert('File size must be less than 3MB')
       return
     }
 
     setIsUploading(true)
+    console.log('Starting image processing...')
     
     try {
       // Compress image before converting to base64
@@ -77,48 +94,61 @@ const NewPostForm = ({ onAddPost }) => {
       const img = new Image()
       
       img.onload = () => {
-        // Resize image to max 800px width/height to reduce base64 size
-        const maxSize = 800
-        let { width, height } = img
-        
-        if (width > height) {
-          if (width > maxSize) {
-            height = (height * maxSize) / width
-            width = maxSize
+        try {
+          console.log('Image loaded, dimensions:', img.width, 'x', img.height)
+          
+          // Resize image to max 800px width/height to reduce base64 size
+          const maxSize = 800
+          let { width, height } = img
+          
+          if (width > height) {
+            if (width > maxSize) {
+              height = (height * maxSize) / width
+              width = maxSize
+            }
+          } else {
+            if (height > maxSize) {
+              width = (width * maxSize) / height
+              height = maxSize
+            }
           }
-        } else {
-          if (height > maxSize) {
-            width = (width * maxSize) / height
-            height = maxSize
-          }
+          
+          console.log('Resized dimensions:', width, 'x', height)
+          
+          canvas.width = width
+          canvas.height = height
+          
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+          
+          console.log('Original file size:', file.size, 'Compressed base64 size:', compressedDataUrl.length)
+          
+          setUploadedImageUrl(compressedDataUrl)
+          setFormData(prev => ({
+            ...prev,
+            imageUrl: compressedDataUrl
+          }))
+          setIsUploading(false)
+          console.log('Image processing completed successfully')
+        } catch (error) {
+          console.error('Error during image processing:', error)
+          alert('Failed to process image: ' + error.message)
+          setIsUploading(false)
         }
-        
-        canvas.width = width
-        canvas.height = height
-        
-        // Draw and compress
-        ctx.drawImage(img, 0, 0, width, height)
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
-        
-        console.log('Original file size:', file.size, 'Compressed base64 size:', compressedDataUrl.length)
-        
-        setUploadedImageUrl(compressedDataUrl)
-        setFormData(prev => ({
-          ...prev,
-          imageUrl: compressedDataUrl
-        }))
+      }
+      
+      img.onerror = (error) => {
+        console.error('Image load error:', error)
+        alert('Failed to load image')
         setIsUploading(false)
       }
       
-      img.onerror = () => {
-        alert('Failed to process image')
-        setIsUploading(false)
-      }
-      
+      console.log('Setting image source...')
       img.src = URL.createObjectURL(file)
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Upload failed. Please try again.')
+      alert('Upload failed. Please try again. Error: ' + error.message)
       setIsUploading(false)
     }
   }
