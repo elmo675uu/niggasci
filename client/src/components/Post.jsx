@@ -113,7 +113,8 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
       
       // First, handle YouTube URLs
       let processedContent = content.replace(youtubeRegex, (match, videoId) => {
-        return `[YOUTUBE:${videoId}]`
+        const isShorts = match.includes('/shorts/')
+        return `[YOUTUBE:${videoId}:${isShorts ? 'SHORTS' : 'VIDEO'}]`
       })
       
       // Then handle other links
@@ -121,18 +122,20 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
       
       return parts.map((part, index) => {
         if (part.startsWith('[YOUTUBE:')) {
-          const videoId = part.replace('[YOUTUBE:', '').replace(']', '')
+          const [videoId, type] = part.replace('[YOUTUBE:', '').replace(']', '').split(':')
+          const isShorts = type === 'SHORTS'
+          
           return (
             <div key={index} className="my-4">
               <iframe
                 width="100%"
-                height="315"
+                height={isShorts ? "560" : "315"}
                 src={`https://www.youtube.com/embed/${videoId}`}
                 title="YouTube video player"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className="rounded-lg max-w-full"
+                className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : ''}`}
               />
             </div>
           )
@@ -169,17 +172,19 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
       
       if (youtubeMatch) {
         const videoId = youtubeMatch[0].match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]
+        const isShorts = youtubeMatch[0].includes('/shorts/')
+        
         return (
           <div key={`youtube-${lineIndex}`} className="my-4">
             <iframe
               width="100%"
-              height="315"
+              height={isShorts ? "560" : "315"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className="rounded-lg max-w-full"
+              className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : ''}`}
             />
           </div>
         )
