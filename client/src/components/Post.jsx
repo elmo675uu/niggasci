@@ -107,8 +107,8 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
   }
 
     const renderContent = (content) => {
-      // YouTube URL detection and rendering
-      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
+      // YouTube URL detection and rendering (including Shorts)
+      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
       const linkRegex = /(https?:\/\/[^\s]+)/g
       
       // First, handle YouTube URLs
@@ -163,12 +163,12 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
         return <br key={`line-break-${lineIndex}`} />
       }
       
-      // Check if this line contains a YouTube URL
-      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
+      // Check if this line contains a YouTube URL (including Shorts)
+      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
       const youtubeMatch = line.match(youtubeRegex)
       
       if (youtubeMatch) {
-        const videoId = youtubeMatch[0].match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]
+        const videoId = youtubeMatch[0].match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]
         return (
           <div key={`youtube-${lineIndex}`} className="my-4">
             <iframe
