@@ -3,6 +3,7 @@ import { Plus, MessageSquare, Users, Clock, Edit, Trash2 } from 'lucide-react'
 
 const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [boards, setBoards] = useState([])
+  const [boardThreadCounts, setBoardThreadCounts] = useState({})
   const [showCreateBoard, setShowCreateBoard] = useState(false)
   const [newBoard, setNewBoard] = useState({ name: '', description: '' })
   const [isCreating, setIsCreating] = useState(false)
@@ -19,6 +20,22 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       if (response.ok) {
         const data = await response.json()
         setBoards(data.boards || [])
+        
+        // Load thread counts for each board
+        const threadCounts = {}
+        for (const board of data.boards || []) {
+          try {
+            const threadsResponse = await fetch(`/api/boards/${board.id}/threads`)
+            if (threadsResponse.ok) {
+              const threadsData = await threadsResponse.json()
+              threadCounts[board.id] = threadsData.threads?.length || 0
+            }
+          } catch (error) {
+            console.error(`Failed to load thread count for board ${board.id}:`, error)
+            threadCounts[board.id] = 0
+          }
+        }
+        setBoardThreadCounts(threadCounts)
       }
     } catch (error) {
       console.error('Failed to load boards:', error)
@@ -40,7 +57,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       if (response.ok) {
         setNewBoard({ name: '', description: '' })
         setShowCreateBoard(false)
-        loadBoards()
+        loadBoards() // This will reload boards and thread counts
       } else {
         const error = await response.json()
         alert('Failed to create board: ' + (error.error || 'Unknown error'))
@@ -71,7 +88,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
 
       if (response.ok) {
         setEditingBoard(null)
-        loadBoards()
+        loadBoards() // This will reload boards and thread counts
       } else {
         const error = await response.json()
         alert('Failed to update board: ' + (error.error || 'Unknown error'))
@@ -91,7 +108,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       })
 
       if (response.ok) {
-        loadBoards()
+        loadBoards() // This will reload boards and thread counts
       } else {
         const error = await response.json()
         alert('Failed to delete board: ' + (error.error || 'Unknown error'))
@@ -304,9 +321,15 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                   </p>
                   
                   <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <Clock size={14} />
-                      <span>Created {new Date(board.created).toLocaleDateString()}</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-1">
+                        <MessageSquare size={14} />
+                        <span>{boardThreadCounts[board.id] || 0} threads</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock size={14} />
+                        <span>Created {new Date(board.created).toLocaleDateString()}</span>
+                      </div>
                     </div>
                     {board.admin && (
                       <span className="bg-primary-600 text-white px-2 py-1 rounded text-xs">
