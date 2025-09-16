@@ -59,7 +59,13 @@ const Header = ({ config, onToggleAdmin, showAdmin }) => {
               className="text-gray-400 hover:text-primary-400 transition-colors duration-300"
               aria-label="Pump Fun"
             >
-              <Zap size={20} />
+              <img 
+                src="/pumpfun-icon.svg" 
+                alt="Pump Fun" 
+                width="20" 
+                height="20"
+                className="w-5 h-5"
+              />
             </a>
           </div>
 

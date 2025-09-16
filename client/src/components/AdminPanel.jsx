@@ -284,7 +284,13 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <Zap size={16} className="mr-2" />
+                    <img 
+                      src="/pumpfun-icon.svg" 
+                      alt="Pump Fun" 
+                      width="16" 
+                      height="16"
+                      className="w-4 h-4 mr-2"
+                    />
                     Pump Fun
                   </label>
                   <input
