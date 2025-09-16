@@ -62,9 +62,9 @@ const NewPostForm = ({ onAddPost }) => {
       return
     }
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB')
+    // Validate file size (3MB limit)
+    if (file.size > 3 * 1024 * 1024) {
+      alert('File size must be less than 3MB')
       return
     }
 
