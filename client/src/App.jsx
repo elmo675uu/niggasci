@@ -48,44 +48,78 @@ function App() {
         setIsLoading(false)
       }, 500)
       
-      // Load posts with timeout and optimization
+      // Set a fallback timeout to show posts even if API is slow
+      setTimeout(() => {
+        if (posts.pinned.length === 0 && posts.user.length === 0) {
+          console.log('Setting fallback posts due to slow loading')
+          setPosts({
+            pinned: [{
+              id: 'fallback-1',
+              title: 'Welcome to NIGGA SCIENCE',
+              content: 'Posts are loading... Please wait a moment.',
+              author: 'System',
+              timestamp: Date.now(),
+              pinned: true,
+              admin: false,
+              likes: [],
+              imageUrl: ''
+            }],
+            user: []
+          })
+        }
+      }, 2000) // 2 second fallback
+      
+      // Load posts with aggressive optimization - remove ALL images for fast loading
       try {
-        console.log('Loading posts...')
+        console.log('Loading posts with image optimization...')
         const postsResponse = await Promise.race([
           fetch('/api/posts', { 
             cache: 'no-cache',
             headers: { 'Accept': 'application/json' }
           }),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Posts loading timeout')), 5000) // 5 second timeout
+            setTimeout(() => reject(new Error('Posts loading timeout')), 3000) // 3 second timeout
           )
         ])
         
         if (postsResponse.ok) {
           const postsData = await postsResponse.json()
-          console.log('Loaded posts data:', postsData)
-          console.log('Pinned posts count:', postsData.pinned?.length || 0)
-          console.log('User posts count:', postsData.user?.length || 0)
+          console.log('Raw posts data loaded, optimizing...')
           
-          // Optimize posts data by removing large base64 images for initial load
+          // Aggressively optimize posts data by removing ALL images for fast loading
           const optimizedPosts = {
             pinned: postsData.pinned?.map(post => ({
-              ...post,
-              imageUrl: post.imageUrl && post.imageUrl.length > 100000 ? 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A' : post.imageUrl
+              id: post.id,
+              title: post.title,
+              content: post.content,
+              author: post.author,
+              timestamp: post.timestamp,
+              pinned: post.pinned,
+              admin: post.admin,
+              likes: post.likes || [],
+              imageUrl: '' // Remove ALL images for fast loading
             })) || [],
             user: postsData.user?.map(post => ({
-              ...post,
-              imageUrl: post.imageUrl && post.imageUrl.length > 100000 ? 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A' : post.imageUrl
+              id: post.id,
+              title: post.title,
+              content: post.content,
+              author: post.author,
+              timestamp: post.timestamp,
+              pinned: post.pinned,
+              admin: post.admin,
+              likes: post.likes || [],
+              imageUrl: '' // Remove ALL images for fast loading
             })) || []
           }
           
           setPosts(optimizedPosts)
-          console.log('Posts optimized and loaded')
+          console.log('Posts optimized and loaded (images removed for performance)')
         } else {
           console.error(`Posts API failed with status: ${postsResponse.status}`)
         }
       } catch (error) {
         console.error('Failed to load posts:', error)
+        console.log('Using fallback posts data')
       }
       
       // Load config
