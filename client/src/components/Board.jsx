@@ -2,7 +2,7 @@ import React from 'react'
 import Post from './Post'
 import NewPostForm from './NewPostForm'
 
-const Board = ({ posts, onAddPost, onRefresh }) => {
+const Board = ({ posts, onAddPost, onRefresh, isAdminAuthenticated }) => {
   return (
     <div className="space-y-8">
       {/* Pinned Posts */}
@@ -19,6 +19,7 @@ const Board = ({ posts, onAddPost, onRefresh }) => {
                 post={post} 
                 isPinned={true}
                 onRefresh={onRefresh}
+                isAdminAuthenticated={isAdminAuthenticated}
               />
             ))}
           </div>
@@ -39,6 +40,7 @@ const Board = ({ posts, onAddPost, onRefresh }) => {
                 post={post} 
                 isPinned={false}
                 onRefresh={onRefresh}
+                isAdminAuthenticated={isAdminAuthenticated}
               />
             ))
           ) : (

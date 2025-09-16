@@ -8,6 +8,7 @@ function App() {
   const [posts, setPosts] = useState({ pinned: [], user: [] })
   const [config, setConfig] = useState({})
   const [showAdmin, setShowAdmin] = useState(false)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   // Load initial data
@@ -93,6 +94,7 @@ function App() {
           posts={posts}
           onAddPost={addPost}
           onRefresh={loadData}
+          isAdminAuthenticated={isAdminAuthenticated}
         />
       </main>
       
@@ -105,6 +107,7 @@ function App() {
           onClose={() => setShowAdmin(false)}
           onUpdateConfig={updateConfig}
           onRefresh={loadData}
+          onAdminLogin={() => setIsAdminAuthenticated(true)}
         />
       )}
     </div>

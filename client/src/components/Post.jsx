@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Pin, PinOff, Edit, Trash2, User, Clock } from 'lucide-react'
 
-const Post = ({ post, isPinned, onRefresh }) => {
+const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({
     title: post.title || '',
@@ -85,46 +85,62 @@ const Post = ({ post, isPinned, onRefresh }) => {
   }
 
   const renderHTMLContent = (content) => {
-    // Create a temporary div to parse HTML
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = content
+    // Handle line breaks and paragraphs properly
+    const lines = content.split('\n')
     
-    // Convert to React elements
-    const convertNodeToReact = (node, key = 0) => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        return renderContent(node.textContent)
+    return lines.map((line, lineIndex) => {
+      // Skip empty lines
+      if (line.trim() === '') {
+        return <br key={`line-break-${lineIndex}`} />
       }
       
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const tagName = node.tagName.toLowerCase()
-        const children = Array.from(node.childNodes).map((child, index) => 
-          convertNodeToReact(child, index)
-        )
-        
-        switch (tagName) {
-          case 'b':
-            return <b key={key}>{children}</b>
-          case 'i':
-            return <i key={key}>{children}</i>
-          case 'strong':
-            return <strong key={key} className="text-primary-400 font-bold">{children}</strong>
-          case 'em':
-            return <em key={key}>{children}</em>
-          case 'br':
-            return <br key={key} />
-          case 'p':
-            return <p key={key} className="mb-2">{children}</p>
-          default:
-            return <span key={key}>{children}</span>
+      // Create a temporary div to parse HTML in this line
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = line
+      
+      // Convert to React elements
+      const convertNodeToReact = (node, key = 0) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return renderContent(node.textContent)
         }
+        
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const tagName = node.tagName.toLowerCase()
+          const children = Array.from(node.childNodes).map((child, index) => 
+            convertNodeToReact(child, index)
+          )
+          
+          switch (tagName) {
+            case 'b':
+              return <b key={key}>{children}</b>
+            case 'i':
+              return <i key={key}>{children}</i>
+            case 'strong':
+              return <strong key={key} className="text-primary-400 font-bold">{children}</strong>
+            case 'em':
+              return <em key={key}>{children}</em>
+            case 'br':
+              return <br key={key} />
+            case 'p':
+              return <p key={key} className="mb-2">{children}</p>
+            default:
+              return <span key={key}>{children}</span>
+          }
+        }
+        
+        return null
       }
       
-      return null
-    }
-    
-    return Array.from(tempDiv.childNodes).map((node, index) => 
-      convertNodeToReact(node, index)
-    )
+      const lineElements = Array.from(tempDiv.childNodes).map((node, index) => 
+        convertNodeToReact(node, index)
+      )
+      
+      return (
+        <div key={`line-${lineIndex}`} className="mb-1">
+          {lineElements}
+        </div>
+      )
+    })
   }
 
 
@@ -153,7 +169,8 @@ const Post = ({ post, isPinned, onRefresh }) => {
         </div>
         
         {/* Admin Controls */}
-        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        {isAdminAuthenticated && (
+          <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
             onClick={handlePinToggle}
             className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-primary-400 transition-all duration-300"
@@ -176,6 +193,7 @@ const Post = ({ post, isPinned, onRefresh }) => {
             <Trash2 size={16} />
           </button>
         </div>
+        )}
       </div>
 
       {/* Post Content */}

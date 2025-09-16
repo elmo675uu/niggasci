@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { X, Save, Plus, Twitter, TrendingUp, Zap } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 
-const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
+const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh, onAdminLogin }) => {
   const [activeTab, setActiveTab] = useState('posts')
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -34,6 +34,7 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
       if (response.ok) {
         setIsAuthenticated(true)
         setPassword('')
+        onAdminLogin() // Notify parent component that admin is authenticated
       } else {
         alert('Invalid password')
       }
