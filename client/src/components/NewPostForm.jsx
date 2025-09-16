@@ -56,59 +56,73 @@ const NewPostForm = ({ onAddPost }) => {
         Create New Post
       </h2>
       
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Author Field */}
-        <div className="relative">
-          <User size={20} className="absolute left-3 top-3 text-gray-400" />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-300 flex items-center">
+            <User size={16} className="mr-2" />
+            Author Name
+          </label>
           <input
             type="text"
             value={formData.author}
             onChange={(e) => handleChange('author', e.target.value)}
             placeholder="Your name (optional - defaults to Anonymous)"
-            className="input-field pl-12"
+            className="input-field w-full"
           />
         </div>
 
         {/* Title Field */}
-        <div className="relative">
-          <Type size={20} className="absolute left-3 top-3 text-gray-400" />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-300 flex items-center">
+            <Type size={16} className="mr-2" />
+            Post Title
+          </label>
           <input
             type="text"
             value={formData.title}
             onChange={(e) => handleChange('title', e.target.value)}
             placeholder="Post title (optional)"
-            className="input-field pl-12"
+            className="input-field w-full"
           />
         </div>
 
         {/* Content Field with Rich Text Editor */}
-        <RichTextEditor
-          value={formData.content}
-          onChange={(value) => handleChange('content', value)}
-          placeholder="What's on your mind? (optional)"
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-300">
+            Post Content
+          </label>
+          <RichTextEditor
+            value={formData.content}
+            onChange={(value) => handleChange('content', value)}
+            placeholder="What's on your mind? (optional)"
+          />
+        </div>
 
         {/* Image URL Field */}
-        <div className="relative">
-          <Image size={20} className="absolute left-3 top-3 text-gray-400" />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-300 flex items-center">
+            <Image size={16} className="mr-2" />
+            Image URL
+          </label>
           <input
             type="url"
             value={formData.imageUrl}
             onChange={(e) => handleChange('imageUrl', e.target.value)}
             placeholder="Image URL (optional)"
-            className="input-field pl-12"
+            className="input-field w-full"
           />
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4 border-t border-dark-700">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3"
           >
             <Send size={20} />
-            <span>{isSubmitting ? 'Posting...' : 'Post'}</span>
+            <span>{isSubmitting ? 'Posting...' : 'Create Post'}</span>
           </button>
         </div>
       </form>
