@@ -71,29 +71,25 @@ const NewPostForm = ({ onAddPost }) => {
     setIsUploading(true)
     
     try {
-      const formData = new FormData()
-      formData.append('image', file)
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        setUploadedImageUrl(result.fileUrl)
+      // Convert file to base64 for direct embedding
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64Data = event.target.result
+        setUploadedImageUrl(base64Data)
         setFormData(prev => ({
           ...prev,
-          imageUrl: result.fileUrl
+          imageUrl: base64Data
         }))
-      } else {
-        const error = await response.json()
-        alert(`Upload failed: ${error.error}`)
+        setIsUploading(false)
       }
+      reader.onerror = () => {
+        alert('Failed to read file')
+        setIsUploading(false)
+      }
+      reader.readAsDataURL(file)
     } catch (error) {
       console.error('Upload error:', error)
       alert('Upload failed. Please try again.')
-    } finally {
       setIsUploading(false)
     }
   }
