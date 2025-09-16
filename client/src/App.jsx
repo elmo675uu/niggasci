@@ -43,9 +43,14 @@ function App() {
         audioVolume: 0.3
       })
       
+      // Always clear loading state after a short delay to ensure UI shows
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 500)
+      
       // Use Promise.allSettled with timeout for faster loading
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 1000) // 1 second timeout
+        setTimeout(() => reject(new Error('Timeout')), 2000) // 2 second timeout
       )
       
       const [postsResult, configResult] = await Promise.allSettled([
@@ -84,8 +89,6 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to load data:', error)
-    } finally {
-      setIsLoading(false)
     }
   }
 
