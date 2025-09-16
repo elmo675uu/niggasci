@@ -48,43 +48,44 @@ function App() {
         setIsLoading(false)
       }, 500)
       
-      // Try to load posts with multiple attempts
-      let postsLoaded = false
-      let attempts = 0
-      const maxAttempts = 3
-      
-      while (!postsLoaded && attempts < maxAttempts) {
-        attempts++
-        console.log(`Attempt ${attempts} to load posts...`)
-        
-        try {
-          const postsResponse = await fetch('/api/posts', { 
+      // Load posts with timeout and optimization
+      try {
+        console.log('Loading posts...')
+        const postsResponse = await Promise.race([
+          fetch('/api/posts', { 
             cache: 'no-cache',
             headers: { 'Accept': 'application/json' }
-          })
-          
-          if (postsResponse.ok) {
-            const postsData = await postsResponse.json()
-            console.log('Loaded posts data:', postsData)
-            console.log('Pinned posts count:', postsData.pinned?.length || 0)
-            console.log('User posts count:', postsData.user?.length || 0)
-            setPosts(postsData)
-            postsLoaded = true
-          } else {
-            console.error(`Posts API failed with status: ${postsResponse.status}`)
-          }
-        } catch (error) {
-          console.error(`Posts API attempt ${attempts} failed:`, error)
-        }
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Posts loading timeout')), 5000) // 5 second timeout
+          )
+        ])
         
-        if (!postsLoaded && attempts < maxAttempts) {
-          console.log('Retrying in 1 second...')
-          await new Promise(resolve => setTimeout(resolve, 1000))
+        if (postsResponse.ok) {
+          const postsData = await postsResponse.json()
+          console.log('Loaded posts data:', postsData)
+          console.log('Pinned posts count:', postsData.pinned?.length || 0)
+          console.log('User posts count:', postsData.user?.length || 0)
+          
+          // Optimize posts data by removing large base64 images for initial load
+          const optimizedPosts = {
+            pinned: postsData.pinned?.map(post => ({
+              ...post,
+              imageUrl: post.imageUrl && post.imageUrl.length > 100000 ? 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A' : post.imageUrl
+            })) || [],
+            user: postsData.user?.map(post => ({
+              ...post,
+              imageUrl: post.imageUrl && post.imageUrl.length > 100000 ? 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A' : post.imageUrl
+            })) || []
+          }
+          
+          setPosts(optimizedPosts)
+          console.log('Posts optimized and loaded')
+        } else {
+          console.error(`Posts API failed with status: ${postsResponse.status}`)
         }
-      }
-      
-      if (!postsLoaded) {
-        console.error('Failed to load posts after all attempts')
+      } catch (error) {
+        console.error('Failed to load posts:', error)
       }
       
       // Load config
