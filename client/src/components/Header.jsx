@@ -50,7 +50,13 @@ const Header = ({ config, onToggleAdmin, showAdmin }) => {
               className="text-gray-400 hover:text-primary-400 transition-colors duration-300"
               aria-label="Dexscreener"
             >
-              <TrendingUp size={20} />
+              <img 
+                src="/dexscreener-icon.svg" 
+                alt="Dexscreener" 
+                width="20" 
+                height="20"
+                className="w-5 h-5"
+              />
             </a>
             <a 
               href={socialLinks.pumpfun} 

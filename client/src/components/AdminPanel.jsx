@@ -267,7 +267,13 @@ const AdminPanel = ({ posts, config, onClose, onUpdateConfig, onRefresh }) => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                    <TrendingUp size={16} className="mr-2" />
+                    <img 
+                      src="/dexscreener-icon.svg" 
+                      alt="Dexscreener" 
+                      width="16" 
+                      height="16"
+                      className="w-4 h-4 mr-2"
+                    />
                     Dexscreener
                   </label>
                   <input
