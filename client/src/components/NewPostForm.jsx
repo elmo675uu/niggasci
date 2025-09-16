@@ -136,7 +136,8 @@ const NewPostForm = ({ onAddPost }) => {
       <div className="mt-4 p-3 bg-dark-800/50 rounded-lg">
         <p className="text-sm text-gray-400">
           <strong>Tips:</strong> You can include links in your post content - they'll be automatically clickable. 
-          Use external image hosting for images. At least one field (title, content, or image) is required.
+          YouTube videos will be embedded automatically. Use external image hosting for images. 
+          At least one field (title, content, or image) is required.
         </p>
       </div>
     </div>

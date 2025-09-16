@@ -175,8 +175,14 @@ function sanitizeInput(input) {
   if (typeof input !== 'string') return input
   
   return sanitizeHtml(input, {
-    allowedTags: ['b', 'i', 'em', 'strong', 'br', 'p'],
-    allowedAttributes: {},
+    allowedTags: ['b', 'i', 'em', 'strong', 'br', 'p', 'iframe'],
+    allowedAttributes: {
+      'iframe': ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'title']
+    },
+    allowedSchemes: ['http', 'https'],
+    allowedSchemesByTag: {
+      'iframe': ['http', 'https']
+    },
     disallowedTagsMode: 'discard'
   })
 }

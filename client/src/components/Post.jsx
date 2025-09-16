@@ -106,28 +106,52 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
     }
   }
 
-  const renderContent = (content) => {
-    // Simple link detection and rendering
-    const linkRegex = /(https?:\/\/[^\s]+)/g
-    const parts = content.split(linkRegex)
-    
-    return parts.map((part, index) => {
-      if (linkRegex.test(part)) {
-        return (
-          <a 
-            key={index}
-            href={part} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="link-neon"
-          >
-            {part}
-          </a>
-        )
-      }
-      return part
-    })
-  }
+    const renderContent = (content) => {
+      // YouTube URL detection and rendering
+      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
+      const linkRegex = /(https?:\/\/[^\s]+)/g
+      
+      // First, handle YouTube URLs
+      let processedContent = content.replace(youtubeRegex, (match, videoId) => {
+        return `[YOUTUBE:${videoId}]`
+      })
+      
+      // Then handle other links
+      const parts = processedContent.split(linkRegex)
+      
+      return parts.map((part, index) => {
+        if (part.startsWith('[YOUTUBE:')) {
+          const videoId = part.replace('[YOUTUBE:', '').replace(']', '')
+          return (
+            <div key={index} className="my-4">
+              <iframe
+                width="100%"
+                height="315"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="rounded-lg max-w-full"
+              />
+            </div>
+          )
+        } else if (linkRegex.test(part)) {
+          return (
+            <a 
+              key={index}
+              href={part} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="link-neon"
+            >
+              {part}
+            </a>
+          )
+        }
+        return part
+      })
+    }
 
   const renderHTMLContent = (content) => {
     // Handle line breaks and paragraphs properly
@@ -137,6 +161,28 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
       // Skip empty lines
       if (line.trim() === '') {
         return <br key={`line-break-${lineIndex}`} />
+      }
+      
+      // Check if this line contains a YouTube URL
+      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
+      const youtubeMatch = line.match(youtubeRegex)
+      
+      if (youtubeMatch) {
+        const videoId = youtubeMatch[0].match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]
+        return (
+          <div key={`youtube-${lineIndex}`} className="my-4">
+            <iframe
+              width="100%"
+              height="315"
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="rounded-lg max-w-full"
+            />
+          </div>
+        )
       }
       
       // Create a temporary div to parse HTML in this line
