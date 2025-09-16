@@ -3,6 +3,10 @@ import Post from './Post'
 import NewPostForm from './NewPostForm'
 
 const Board = ({ posts, onAddPost, onRefresh, isAdminAuthenticated }) => {
+  console.log('Board received posts:', posts)
+  console.log('Pinned posts:', posts.pinned)
+  console.log('User posts:', posts.user)
+  
   return (
     <div className="space-y-8">
       {/* Pinned Posts */}

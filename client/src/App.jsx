@@ -74,9 +74,12 @@ function App() {
       if (postsResult.status === 'fulfilled' && postsResult.value.ok) {
         const postsData = await postsResult.value.json()
         console.log('Loaded posts data:', postsData)
+        console.log('Pinned posts count:', postsData.pinned?.length || 0)
+        console.log('User posts count:', postsData.user?.length || 0)
         setPosts(postsData)
       } else {
         console.error('Failed to load posts:', postsResult.reason || postsResult.value?.status)
+        console.log('Using fallback posts data')
       }
       
       // Handle config
@@ -147,19 +150,16 @@ function App() {
       />
       
       <main className="container mx-auto px-4 py-8 max-w-6xl">
-        {isLoading ? (
-          <div className="text-center py-8">
-            <div className="text-primary-500 text-lg font-heading animate-pulse">
-              Loading posts...
-            </div>
+        <Board 
+          posts={posts}
+          onAddPost={addPost}
+          onRefresh={loadData}
+          isAdminAuthenticated={isAdminAuthenticated}
+        />
+        {isLoading && (
+          <div className="fixed top-4 right-4 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm">
+            Loading posts...
           </div>
-        ) : (
-          <Board 
-            posts={posts}
-            onAddPost={addPost}
-            onRefresh={loadData}
-            isAdminAuthenticated={isAdminAuthenticated}
-          />
         )}
       </main>
       
