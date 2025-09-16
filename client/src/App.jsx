@@ -4,7 +4,6 @@ import Board from './components/Board'
 import AdminPanel from './components/AdminPanel'
 import AudioPlayer from './components/AudioPlayer'
 import SnowflakeAnimation from './components/SnowflakeAnimation'
-import LoadingScreen from './components/LoadingScreen'
 
 function App() {
   const [posts, setPosts] = useState({ pinned: [], user: [] })
@@ -12,18 +11,15 @@ function App() {
   const [showAdmin, setShowAdmin] = useState(false)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [showLoadingScreen, setShowLoadingScreen] = useState(true)
 
   // Load initial data immediately
   useEffect(() => {
-    // Start loading data immediately, don't wait for loading screen
     loadData()
     
-    // Also set a maximum loading time to prevent infinite loading
+    // Set a maximum loading time to prevent infinite loading
     const maxLoadingTime = setTimeout(() => {
       console.log('Maximum loading time reached, forcing completion')
       setIsLoading(false)
-      setShowLoadingScreen(false)
     }, 2000) // 2 second maximum
     
     return () => clearTimeout(maxLoadingTime)
@@ -186,10 +182,6 @@ function App() {
     }
   }
 
-  // Show loading screen while loading
-  if (showLoadingScreen) {
-    return <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />
-  }
 
   return (
     <div className="min-h-screen">
