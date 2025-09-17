@@ -110,6 +110,89 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
     })
   }
 
+  const renderHTMLContent = (content) => {
+    if (!content) return null
+    
+    // Handle line breaks and paragraphs properly
+    const lines = content.split('\n')
+    
+    return lines.map((line, lineIndex) => {
+      // Skip empty lines
+      if (line.trim() === '') {
+        return <br key={`line-break-${lineIndex}`} />
+      }
+      
+      // Check if this line contains a YouTube URL (including Shorts)
+      const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
+      const youtubeMatch = line.match(youtubeRegex)
+      
+      if (youtubeMatch) {
+        const videoId = youtubeMatch[0].match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]
+        const isShorts = youtubeMatch[0].includes('/shorts/')
+        
+        return (
+          <div key={`youtube-${lineIndex}`} className="my-4">
+            <iframe
+              width="100%"
+              height={isShorts ? "200" : "150"}
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className={`rounded-lg max-w-full ${isShorts ? 'max-w-xs mx-auto' : ''}`}
+            />
+          </div>
+        )
+      }
+      
+      // Create a temporary div to parse HTML in this line
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = line
+      
+      // Convert to React elements
+      const convertNodeToReact = (node, key = 0) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return renderContent(node.textContent)
+        }
+        
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const tagName = node.tagName.toLowerCase()
+          const children = Array.from(node.childNodes).map((child, index) => 
+            convertNodeToReact(child, index)
+          )
+          
+          switch (tagName) {
+            case 'b':
+              return <b key={key}>{children}</b>
+            case 'i':
+              return <i key={key}>{children}</i>
+            case 'strong':
+              return <strong key={key} className="text-primary-400 font-bold">{children}</strong>
+            case 'em':
+              return <em key={key}>{children}</em>
+            case 'br':
+              return <br key={key} />
+            case 'p':
+              return <p key={key} className="mb-2">{children}</p>
+            default:
+              return <span key={key}>{children}</span>
+          }
+        }
+        
+        return null
+      }
+      
+      return (
+        <div key={`line-${lineIndex}`} className="mb-1">
+          {Array.from(tempDiv.childNodes).map((node, index) => 
+            convertNodeToReact(node, index)
+          )}
+        </div>
+      )
+    })
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 flex items-center justify-center">
@@ -186,7 +269,7 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
                       {thread.title || 'Untitled Thread'}
                     </h3>
                     <div className="text-gray-300 text-sm mb-3">
-                      {renderContent(thread.content)}
+                      {renderHTMLContent(thread.content)}
                     </div>
                     {thread.imageUrl && (
                       <div className="mb-3">
