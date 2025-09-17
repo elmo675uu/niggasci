@@ -129,13 +129,13 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
             <div key={index} className="my-4">
               <iframe
                 width="100%"
-                height={isShorts ? "560" : "315"}
+                height={isShorts ? "560" : "400"}
                 src={`https://www.youtube.com/embed/${videoId}`}
                 title="YouTube video player"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : ''}`}
+                className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : 'max-w-2xl mx-auto'}`}
               />
             </div>
           )
@@ -178,13 +178,13 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
           <div key={`youtube-${lineIndex}`} className="my-4">
             <iframe
               width="100%"
-              height={isShorts ? "560" : "315"}
+              height={isShorts ? "560" : "400"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : ''}`}
+              className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : 'max-w-2xl mx-auto'}`}
             />
           </div>
         )

@@ -83,13 +83,13 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
           <div key={index} className="my-2">
             <iframe
               width="100%"
-              height={isShorts ? "200" : "150"}
+              height={isShorts ? "200" : "250"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-xs mx-auto' : ''}`}
+              className={`rounded-lg max-w-full ${isShorts ? 'max-w-xs mx-auto' : 'max-w-md mx-auto'}`}
             />
           </div>
         )
@@ -134,13 +134,13 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
           <div key={`youtube-${lineIndex}`} className="my-4">
             <iframe
               width="100%"
-              height={isShorts ? "200" : "150"}
+              height={isShorts ? "200" : "250"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-xs mx-auto' : ''}`}
+              className={`rounded-lg max-w-full ${isShorts ? 'max-w-xs mx-auto' : 'max-w-md mx-auto'}`}
             />
           </div>
         )
