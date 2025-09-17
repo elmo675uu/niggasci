@@ -828,6 +828,42 @@ app.post('/api/info-posts', async (req, res) => {
   }
 })
 
+// Update info post (admin only)
+app.put('/api/info-posts/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params
+    const { title, content, imageUrl } = req.body
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' })
+    }
+    
+    const data = await fs.readFile(INFO_POSTS_FILE, 'utf8')
+    const infoPosts = JSON.parse(data)
+    
+    const postIndex = infoPosts.posts.findIndex(post => post.id === postId)
+    if (postIndex === -1) {
+      return res.status(404).json({ error: 'Info post not found' })
+    }
+    
+    // Update the post
+    infoPosts.posts[postIndex] = {
+      ...infoPosts.posts[postIndex],
+      title: sanitizeInput(title),
+      content: sanitizeInput(content),
+      imageUrl: imageUrl ? sanitizeUrl(imageUrl) : '',
+      updated: Date.now()
+    }
+    
+    await fs.writeFile(INFO_POSTS_FILE, JSON.stringify(infoPosts, null, 2))
+    
+    res.json({ success: true, post: infoPosts.posts[postIndex] })
+  } catch (error) {
+    console.error('Error updating info post:', error)
+    res.status(500).json({ error: 'Failed to update info post' })
+  }
+})
+
 // Delete info post (admin only)
 app.delete('/api/info-posts/:postId', async (req, res) => {
   try {

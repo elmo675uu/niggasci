@@ -14,8 +14,13 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   const [showCreateInfoPost, setShowCreateInfoPost] = useState(false)
   const [newInfoPost, setNewInfoPost] = useState({ title: '', content: '', imageUrl: '' })
   const [isCreatingInfoPost, setIsCreatingInfoPost] = useState(false)
+  const [editingInfoPost, setEditingInfoPost] = useState(null)
+  const [editInfoPostData, setEditInfoPostData] = useState({ title: '', content: '', imageUrl: '' })
+  const [isUpdatingInfoPost, setIsUpdatingInfoPost] = useState(false)
   const [draggedBoard, setDraggedBoard] = useState(null)
   const [isReordering, setIsReordering] = useState(false)
+  const [isLoadingBoards, setIsLoadingBoards] = useState(true)
+  const [isLoadingInfoPosts, setIsLoadingInfoPosts] = useState(true)
 
   useEffect(() => {
     loadBoards()
@@ -23,42 +28,74 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
   }, [])
 
   const loadBoards = async () => {
+    setIsLoadingBoards(true)
     try {
-      const response = await fetch('/api/boards')
+      const response = await fetch('/api/boards', {
+        cache: 'no-cache',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      })
+      
       if (response.ok) {
         const data = await response.json()
         setBoards(data.boards || [])
         
-        // Load thread counts for each board
-        const threadCounts = {}
-        for (const board of data.boards || []) {
-          try {
-            const threadsResponse = await fetch(`/api/boards/${board.id}/threads`)
-            if (threadsResponse.ok) {
-              const threadsData = await threadsResponse.json()
-              threadCounts[board.id] = threadsData.threads?.length || 0
+        // Load thread counts for each board in parallel
+        if (data.boards && data.boards.length > 0) {
+          const threadCountPromises = data.boards.map(async (board) => {
+            try {
+              const threadsResponse = await fetch(`/api/boards/${board.id}/threads`, {
+                cache: 'no-cache',
+                signal: AbortSignal.timeout(5000)
+              })
+              if (threadsResponse.ok) {
+                const threadsData = await threadsResponse.json()
+                return { boardId: board.id, count: threadsData.threads?.length || 0 }
+              }
+            } catch (error) {
+              console.error(`Failed to load thread count for board ${board.id}:`, error)
             }
-          } catch (error) {
-            console.error(`Failed to load thread count for board ${board.id}:`, error)
-            threadCounts[board.id] = 0
-          }
+            return { boardId: board.id, count: 0 }
+          })
+          
+          const threadCountResults = await Promise.allSettled(threadCountPromises)
+          const threadCounts = {}
+          threadCountResults.forEach((result) => {
+            if (result.status === 'fulfilled') {
+              threadCounts[result.value.boardId] = result.value.count
+            }
+          })
+          setBoardThreadCounts(threadCounts)
         }
-        setBoardThreadCounts(threadCounts)
+      } else {
+        console.error(`Failed to load boards: ${response.status}`)
       }
     } catch (error) {
       console.error('Failed to load boards:', error)
+    } finally {
+      setIsLoadingBoards(false)
     }
   }
 
   const loadInfoPosts = async () => {
+    setIsLoadingInfoPosts(true)
     try {
-      const response = await fetch('/api/info-posts')
+      const response = await fetch('/api/info-posts', {
+        cache: 'no-cache',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      })
+      
       if (response.ok) {
         const data = await response.json()
         setInfoPosts(data.posts || [])
+      } else {
+        console.error(`Failed to load info posts: ${response.status}`)
       }
     } catch (error) {
       console.error('Failed to load info posts:', error)
+    } finally {
+      setIsLoadingInfoPosts(false)
     }
   }
 
@@ -87,6 +124,41 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
       alert('Failed to create info post')
     } finally {
       setIsCreatingInfoPost(false)
+    }
+  }
+
+  const handleEditInfoPost = (post) => {
+    setEditInfoPostData({
+      title: post.title,
+      content: post.content,
+      imageUrl: post.imageUrl || ''
+    })
+    setEditingInfoPost(post.id)
+  }
+
+  const handleSaveInfoPostEdit = async () => {
+    if (!editInfoPostData.title || !editInfoPostData.content) return
+
+    setIsUpdatingInfoPost(true)
+    try {
+      const response = await fetch(`/api/info-posts/${editingInfoPost}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editInfoPostData)
+      })
+
+      if (response.ok) {
+        setEditingInfoPost(null)
+        loadInfoPosts()
+      } else {
+        const error = await response.json()
+        alert('Failed to update info post: ' + (error.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Failed to update info post:', error)
+      alert('Failed to update info post')
+    } finally {
+      setIsUpdatingInfoPost(false)
     }
   }
 
@@ -462,8 +534,14 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {boards.map((board) => (
+        {isLoadingBoards ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-400"></div>
+            <p className="text-gray-400 mt-4">Loading boards...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {boards.map((board) => (
             <div
               key={board.id}
               className={`card hover:bg-dark-700/50 transition-all duration-300 group relative h-80 flex flex-col ${
@@ -606,6 +684,14 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
               )}
             </div>
           ))}
+          </div>
+        )}
+
+        {/* Instructions */}
+        <div className="mt-8 text-center">
+          <p className="text-gray-400 text-lg">
+            Click on a board to view threads and start discussions
+          </p>
         </div>
 
         {/* Admin Info Posts Section */}
@@ -627,40 +713,115 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
           </div>
 
             {/* Info Posts List */}
-            {infoPosts.length > 0 ? (
+            {isLoadingInfoPosts ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-400"></div>
+                <p className="text-gray-400 mt-2">Loading information posts...</p>
+              </div>
+            ) : infoPosts.length > 0 ? (
               <div className="space-y-4">
                 {infoPosts.map((post) => (
                   <div key={post.id} className="card">
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="text-xl font-bold text-primary-400">{post.title}</h3>
-                      {isAdminAuthenticated && (
-                        <button
-                          onClick={() => handleDeleteInfoPost(post.id)}
-                          className="p-1 rounded bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 transition-all duration-300"
-                          title="Delete info post"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                    {post.imageUrl && (
-                      <div className="mb-4">
-                        <img
-                          src={post.imageUrl}
-                          alt="Info post image"
-                          className="min-w-[300px] max-w-[500px] h-auto rounded-lg"
-                          onError={(e) => {
-                            e.target.style.display = 'none'
-                          }}
-                        />
+                    {editingInfoPost === post.id ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Post Title
+                          </label>
+                          <input
+                            type="text"
+                            value={editInfoPostData.title}
+                            onChange={(e) => setEditInfoPostData({...editInfoPostData, title: e.target.value})}
+                            className="input-field w-full"
+                            placeholder="Post title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Image URL (optional)
+                          </label>
+                          <input
+                            type="url"
+                            value={editInfoPostData.imageUrl}
+                            onChange={(e) => setEditInfoPostData({...editInfoPostData, imageUrl: e.target.value})}
+                            className="input-field w-full"
+                            placeholder="https://example.com/image.jpg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Post Content
+                          </label>
+                          <RichTextEditor
+                            value={editInfoPostData.content}
+                            onChange={(content) => setEditInfoPostData({...editInfoPostData, content})}
+                            placeholder="Write your information post here..."
+                          />
+                        </div>
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={handleSaveInfoPostEdit}
+                            disabled={isUpdatingInfoPost}
+                            className="btn-primary flex-1"
+                          >
+                            {isUpdatingInfoPost ? 'Updating...' : 'Save Changes'}
+                          </button>
+                          <button
+                            onClick={() => setEditingInfoPost(null)}
+                            className="btn-secondary flex-1"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start justify-between mb-4">
+                          <h3 className="text-xl font-bold text-primary-400">{post.title}</h3>
+                          {isAdminAuthenticated && (
+                            <div className="flex items-center space-x-1">
+                              <button
+                                onClick={() => handleEditInfoPost(post)}
+                                className="p-1 rounded bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 hover:text-blue-300 transition-all duration-300"
+                                title="Edit info post"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteInfoPost(post.id)}
+                                className="p-1 rounded bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 transition-all duration-300"
+                                title="Delete info post"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {post.imageUrl && (
+                          <div className="mb-4">
+                            <img
+                              src={post.imageUrl}
+                              alt="Info post image"
+                              className="min-w-[300px] max-w-[500px] h-auto rounded-lg"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="text-gray-300">
+                          {renderHTMLContent(post.content)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-4">
+                          Posted {new Date(post.timestamp).toLocaleString()}
+                          {post.updated && (
+                            <span className="ml-2">
+                              • Updated {new Date(post.updated).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </>
                     )}
-                    <div className="text-gray-300">
-                      {renderHTMLContent(post.content)}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-4">
-                      Posted {new Date(post.timestamp).toLocaleString()}
-                    </div>
                   </div>
                 ))}
               </div>

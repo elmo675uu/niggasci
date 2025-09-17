@@ -29,7 +29,7 @@ function App() {
       console.log('Loading data...')
       
       // Set default config first
-      setConfig({
+      const defaultConfig = {
         title: "NIGGA SCIENCE",
         description: "The ultimate imageboard for nigga science discussions",
         tokenCA: "",
@@ -42,32 +42,45 @@ function App() {
         audioAutoplay: true,
         audioLoop: true,
         audioVolume: 0.3
-      })
-      
-      // Set loading to false after data loads
-      setTimeout(() => {
-        setIsLoading(false)
-      }, 1000) // Show loading screen for at least 1 second
-      
-      // Load config
-      try {
-        const configResponse = await fetch('/api/config', { 
-          cache: 'no-cache',
-          headers: { 'Accept': 'application/json' }
-        })
-        
-        if (configResponse.ok) {
-          const configData = await configResponse.json()
-          console.log('Config loaded:', configData)
-          setConfig(configData)
-        } else {
-          console.error(`Config API failed with status: ${configResponse.status}`)
-        }
-      } catch (error) {
-        console.error('Failed to load config:', error)
       }
+      setConfig(defaultConfig)
+      
+      // Load config with retry logic
+      let configLoaded = false
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const configResponse = await fetch('/api/config', { 
+            cache: 'no-cache',
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(5000) // 5 second timeout
+          })
+          
+          if (configResponse.ok) {
+            const configData = await configResponse.json()
+            console.log('Config loaded:', configData)
+            setConfig(configData)
+            configLoaded = true
+            break
+          } else {
+            console.error(`Config API failed with status: ${configResponse.status} (attempt ${attempt})`)
+          }
+        } catch (error) {
+          console.error(`Failed to load config (attempt ${attempt}):`, error)
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)) // Exponential backoff
+          }
+        }
+      }
+      
+      if (!configLoaded) {
+        console.warn('Using default config due to API failure')
+      }
+      
     } catch (error) {
       console.error('Error loading data:', error)
+    } finally {
+      // Always set loading to false, regardless of success/failure
+      setIsLoading(false)
     }
   }
 
