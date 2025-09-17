@@ -197,8 +197,18 @@ function sanitizeUrl(url) {
 function validatePost(post) {
   const errors = []
   
-  if (!post.title && !post.content && !post.imageUrl) {
-    errors.push('At least one field (title, content, or image) is required')
+  // For threads, require title OR (content OR imageUrl)
+  // For replies, require content OR imageUrl (no title)
+  if (post.title !== undefined) {
+    // This is a thread (has title field)
+    if (!post.title && !post.content && !post.imageUrl) {
+      errors.push('At least one field (title, content, or image) is required')
+    }
+  } else {
+    // This is a reply (no title field)
+    if (!post.content && !post.imageUrl) {
+      errors.push('At least one field (content or image) is required')
+    }
   }
   
   if (post.title && post.title.length > 200) {
