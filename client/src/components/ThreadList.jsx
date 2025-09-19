@@ -16,10 +16,16 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
   const loadThreads = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/boards/${board.id}/threads`)
+      const response = await fetch(`/api/boards/${board.id}/threads`, {
+        cache: 'no-cache',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      })
       if (response.ok) {
         const data = await response.json()
         setThreads(data.threads || [])
+      } else {
+        console.error(`Failed to load threads: ${response.status}`)
       }
     } catch (error) {
       console.error('Failed to load threads:', error)
@@ -80,16 +86,16 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
         const isShorts = type === 'SHORTS'
         
         return (
-          <div key={index} className="my-2">
+          <div key={index} className={`my-2 ${isShorts ? 'flex justify-center' : ''}`}>
             <iframe
-              width="100%"
+              width={isShorts ? "113" : "100%"}
               height={isShorts ? "200" : "250"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-xs mx-auto' : 'max-w-md mx-auto'}`}
+              className={`rounded-lg ${isShorts ? 'max-w-xs' : 'max-w-lg mx-auto'}`}
             />
           </div>
         )
@@ -131,16 +137,16 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
         const isShorts = youtubeMatch[0].includes('/shorts/')
         
         return (
-          <div key={`youtube-${lineIndex}`} className="my-4">
+          <div key={`youtube-${lineIndex}`} className={`my-4 ${isShorts ? 'flex justify-center' : ''}`}>
             <iframe
-              width="100%"
+              width={isShorts ? "113" : "100%"}
               height={isShorts ? "200" : "250"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-xs mx-auto' : 'max-w-md mx-auto'}`}
+              className={`rounded-lg ${isShorts ? 'max-w-xs' : 'max-w-lg mx-auto'}`}
             />
           </div>
         )
@@ -277,6 +283,7 @@ const ThreadList = ({ board, onBack, isAdminAuthenticated, onThreadSelect }) => 
                           src={thread.imageUrl}
                           alt="Thread image"
                           className="max-w-xs max-h-32 object-cover rounded-lg"
+                          loading="lazy"
                           onError={(e) => e.target.style.display = 'none'}
                         />
                       </div>

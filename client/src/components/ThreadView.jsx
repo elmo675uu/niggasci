@@ -31,13 +31,17 @@ const ThreadView = ({ threadId, onBack, isAdminAuthenticated }) => {
   const loadThread = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/threads/${threadId}`)
+      const response = await fetch(`/api/threads/${threadId}`, {
+        cache: 'no-cache',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      })
       if (response.ok) {
         const data = await response.json()
         setThread(data.thread)
         setReplies(data.replies || [])
       } else {
-        console.error('Failed to load thread')
+        console.error(`Failed to load thread: ${response.status}`)
       }
     } catch (error) {
       console.error('Failed to load thread:', error)
@@ -235,16 +239,16 @@ const ThreadView = ({ threadId, onBack, isAdminAuthenticated }) => {
         const isShorts = type === 'SHORTS'
         
         return (
-          <div key={index} className="my-4">
+          <div key={index} className={`my-4 ${isShorts ? 'flex justify-center' : ''}`}>
             <iframe
-              width="100%"
+              width={isShorts ? "315" : "100%"}
               height={isShorts ? "560" : "400"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : 'max-w-2xl mx-auto'}`}
+              className={`rounded-lg ${isShorts ? 'max-w-sm' : 'max-w-4xl mx-auto'}`}
             />
           </div>
         )
@@ -286,16 +290,16 @@ const ThreadView = ({ threadId, onBack, isAdminAuthenticated }) => {
         const isShorts = youtubeMatch[0].includes('/shorts/')
         
         return (
-          <div key={`youtube-${lineIndex}`} className="my-4">
+          <div key={`youtube-${lineIndex}`} className={`my-4 ${isShorts ? 'flex justify-center' : ''}`}>
             <iframe
-              width="100%"
+              width={isShorts ? "315" : "100%"}
               height={isShorts ? "560" : "400"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : 'max-w-2xl mx-auto'}`}
+              className={`rounded-lg ${isShorts ? 'max-w-sm' : 'max-w-4xl mx-auto'}`}
             />
           </div>
         )
@@ -536,6 +540,7 @@ const ThreadView = ({ threadId, onBack, isAdminAuthenticated }) => {
                       src={thread.imageUrl} 
                       alt={thread.title || 'Thread image'}
                       className="w-full min-w-[300px] max-w-[500px] h-auto rounded-lg border border-dark-600"
+                      loading="lazy"
                       onError={(e) => {
                         e.target.style.display = 'none'
                       }}
@@ -736,6 +741,7 @@ const ThreadView = ({ threadId, onBack, isAdminAuthenticated }) => {
                             src={reply.imageUrl} 
                             alt="Reply image"
                             className="w-full min-w-[300px] max-w-[500px] h-auto rounded-lg border border-dark-600"
+                            loading="lazy"
                             onError={(e) => {
                               e.target.style.display = 'none'
                             }}

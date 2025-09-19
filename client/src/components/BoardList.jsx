@@ -803,6 +803,7 @@ const BoardList = ({ isAdminAuthenticated, onBoardSelect, config }) => {
                               src={post.imageUrl}
                               alt="Info post image"
                               className="min-w-[300px] max-w-[500px] h-auto rounded-lg"
+                              loading="lazy"
                               onError={(e) => {
                                 e.target.style.display = 'none'
                               }}

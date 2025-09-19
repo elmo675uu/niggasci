@@ -126,16 +126,16 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
           const isShorts = type === 'SHORTS'
           
           return (
-            <div key={index} className="my-4">
+            <div key={index} className={`my-4 ${isShorts ? 'flex justify-center' : ''}`}>
               <iframe
-                width="100%"
+                width={isShorts ? "315" : "100%"}
                 height={isShorts ? "560" : "400"}
                 src={`https://www.youtube.com/embed/${videoId}`}
                 title="YouTube video player"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : 'max-w-2xl mx-auto'}`}
+                className={`rounded-lg ${isShorts ? 'max-w-sm' : 'max-w-4xl mx-auto'}`}
               />
             </div>
           )
@@ -175,16 +175,16 @@ const Post = ({ post, isPinned, onRefresh, isAdminAuthenticated }) => {
         const isShorts = youtubeMatch[0].includes('/shorts/')
         
         return (
-          <div key={`youtube-${lineIndex}`} className="my-4">
+          <div key={`youtube-${lineIndex}`} className={`my-4 ${isShorts ? 'flex justify-center' : ''}`}>
             <iframe
-              width="100%"
+              width={isShorts ? "315" : "100%"}
               height={isShorts ? "560" : "400"}
               src={`https://www.youtube.com/embed/${videoId}`}
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className={`rounded-lg max-w-full ${isShorts ? 'max-w-sm mx-auto' : 'max-w-2xl mx-auto'}`}
+              className={`rounded-lg ${isShorts ? 'max-w-sm' : 'max-w-4xl mx-auto'}`}
             />
           </div>
         )
